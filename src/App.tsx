@@ -14,6 +14,7 @@ import { ExcelImportCenterModal } from './components/import/ExcelImportCenterMod
 import { SchoolProfileSettingsView } from './components/settings/SchoolProfileSettingsView';
 import { SettingsAndBackupView } from './components/phase5/SettingsAndBackupView';
 import { CodeBlueprintViewer } from './components/blueprint/CodeBlueprintViewer';
+import { CommandPaletteModal } from './components/navigation/CommandPaletteModal';
 import { 
   MOCK_STUDENTS, 
   MOCK_DAILY_ATTENDANCE, 
@@ -52,10 +53,11 @@ const STORAGE_KEY_DEPARTMENTS = 'buku_induk_departments_v2';
 const STORAGE_KEY_GRADE_LEVELS = 'buku_induk_grade_levels_v2';
 const STORAGE_KEY_CLASSES = 'buku_induk_classes_v2';
 const STORAGE_KEY_MASTER_SUBJECTS = 'buku_induk_master_subjects_v2';
-const STORAGE_KEY_THEME = 'buku_induk_ui_theme_v2';
+const STORAGE_KEY_THEME = 'buku_induk_ui_theme_v3';
+const STORAGE_KEY_SIDEBAR_COLLAPSED = 'buku_induk_sidebar_collapsed_v1';
 
 export default function App() {
-  // Current logged in user (null = shows Filament login screen)
+  // Current logged in user (null = shows login screen)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_AUTH);
@@ -68,9 +70,37 @@ export default function App() {
 
   const [activeNav, setActiveNav] = useState<ActiveNavKey>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_SIDEBAR_COLLAPSED) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
 
-  // 5 UI Templates State
+  const handleToggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(STORAGE_KEY_SIDEBAR_COLLAPSED, String(next));
+      return next;
+    });
+  };
+
+  // Global Ctrl+K / Cmd+K Shortcut for Command Palette
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  // Multi-UI Design Systems State (Default: linear-notion)
   const [currentTheme, setCurrentTheme] = useState<UIThemePreset>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_THEME) as UIThemePreset;
@@ -78,7 +108,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    return 'filament-amber';
+    return 'linear-notion';
   });
 
   const handleSelectTheme = (theme: UIThemePreset) => {
@@ -86,7 +116,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY_THEME, theme);
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.classList.toggle('dark', theme === 'obsidian-dark');
-    showToast('Tema UI Diperbarui', `Tampilan aktif: ${theme.replace('-', ' ').toUpperCase()}`, 'info');
+    showToast('Gaya UI Diperbarui', `Tampilan aktif: ${theme.replace('-', ' ').toUpperCase()}`, 'info');
   };
 
   useEffect(() => {
@@ -574,7 +604,7 @@ export default function App() {
     setDepartments(DEFAULT_DEPARTMENTS);
     setGradeLevels(DEFAULT_GRADE_LEVELS);
     setSchoolClasses(DEFAULT_CLASSES);
-    setCurrentTheme('filament-amber');
+    setCurrentTheme('linear-notion');
     localStorage.clear();
     showToast('Data Direset', 'Seluruh data telah dikembalikan ke standar awal.', 'info');
   };
@@ -587,7 +617,7 @@ export default function App() {
     if (step === 5) setActiveNav('step4_kelas');
   };
 
-  // If user is not logged in, display the authentic Filament v3 Login Screen
+  // If user is not logged in, display the Login Screen
   if (!currentUser) {
     return (
       <FilamentLoginView
@@ -612,7 +642,7 @@ export default function App() {
       } flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-200`}
     >
       <div className="flex flex-1 overflow-hidden">
-        {/* Filament Sidebar with Steps 1 - 8 */}
+        {/* Workspace Sidebar (Collapsible + Ctrl+K Trigger) */}
         <FilamentSidebar
           activeNav={activeNav}
           onSelectNav={(key) => {
@@ -624,6 +654,9 @@ export default function App() {
           }}
           isOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleSidebarCollapse}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           schoolProfile={schoolProfile}
           currentUser={currentUser}
           onLogout={() => {
@@ -634,13 +667,16 @@ export default function App() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {/* Top Navbar with Quick Theme Switcher */}
+          {/* Top Navbar with Quick Search (Ctrl+K) & UI Style Switcher */}
           <FilamentNavbar
             notifications={notifications}
             onMarkNotificationAsRead={handleMarkNotificationAsRead}
             onClearAllNotifications={handleClearAllNotifications}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onToggleSidebarCollapse={handleToggleSidebarCollapse}
+            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
             schoolProfile={schoolProfile}
             currentUser={currentUser}
             onLogout={() => {
@@ -896,6 +932,27 @@ export default function App() {
         onImportGrades={handleImportGrades}
         onImportPhotosZip={handleImportPhotosZip}
         onShowNotification={showToast}
+      />
+
+      {/* Command Palette (Ctrl+K / Cmd+K) */}
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        students={students}
+        onSelectStudentForPreview={(student) => handleSinglePrint(student)}
+        onNavigateNav={(nav) => {
+          if (nav === 'impor_massal_center') {
+            setIsImportModalOpen(true);
+          } else {
+            setActiveNav(nav);
+          }
+        }}
+        onOpenImportModal={() => setIsImportModalOpen(true)}
+        onExportStudentsExcel={handleExportExcel}
+        onToggleSidebarCollapse={handleToggleSidebarCollapse}
+        isSidebarCollapsed={isSidebarCollapsed}
+        currentTheme={currentTheme}
+        onSelectTheme={handleSelectTheme}
       />
 
       {/* Floating Toast Notification */}

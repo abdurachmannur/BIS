@@ -1,110 +1,127 @@
-# Rencana Implementasi: Kelengkapan Penuh Impor/Ekspor Excel Siswa (Bagian A–F), Upload Foto Manual Siswa, Tombol Edit & Master Mata Pelajaran, serta Impor Nilai Fleksibel Tanpa Kode
+# Transformasi UI Linear & Notion Workspace + Dokumentasi GitHub & Deployment Multi-Platform
 
-Pembaruan ini menyempurnakan keselarasan data antara **Formulir Input Manual Siswa**, **Template Impor/Ekspor Excel (`.xlsx`)**, **Menu Input & Edit Nilai**, dan **Hasil Cetak Buku Induk PDF** agar seluruh atribut yang tampil di hasil cetak tersedia lengkap, mudah diedit, dan tidak lagi membingungkan akibat penggunaan kode singkatan mata pelajaran.
+Pembaruan ini menggabungkan dua peningkatan utama:
+1. **Transformasi Antarmuka Linear & Notion Workspace** dengan **Sidebar Ringkas (*Collapsible*)**, **Command Palette (`Ctrl+K`)**, dan **Multi-UI Theme Switcher**.
+2. **Dokumentasi `README.md` GitHub Lengkap & Konfigurasi Deployment** untuk pemasangan dan penggunaan aplikasi di **Linux (Native, NPM, PM2, Nginx)**, **Docker / Docker Compose**, serta **Windows (Native Node.js, Winget, WSL2)**.
 
-### User Review & Critical Decisions
+---
+
+## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **Keputusan Terkonfirmasi Pengguna (Phase 1):**
-> - **Kelengkapan 100% Data Siswa pada Impor/Ekspor Excel & Input Manual (Bagian A s/d F)**:
->   - Menambahkan seluruh kolom yang tampil di lembar cetak ke dalam **Template Impor Excel Siswa**, **Ekspor Excel Siswa**, dan **Form Input/Edit Manual Siswa**:
->     - **Bagian A (Pribadi)**: `NIS`, `NISN`, `Nama Lengkap`, `Nama Panggilan`, `Jenis Kelamin`, `Tempat Lahir`, `Tanggal Lahir`, `Agama`, `Kewarganegaraan`, `Anak Ke`, `Jumlah Saudara Kandung`, `Bahasa Sehari-hari`, `Alamat`, `Kelurahan`, `Kecamatan`, `Kota/Kabupaten`, `Tinggal Bersama`, `No. HP Siswa/Ortu`, serta **Upload Pas Foto Siswa 3x4** langsung di form manual.
->     - **Bagian B (Jasmani)**: `Berat Badan (kg)`, `Tinggi Badan (cm)`, `Golongan Darah`, `Riwayat Penyakit`.
->     - **Bagian C (Pendidikan Sebelumnya)**: `Asal Sekolah SMP`, `Nomor Ijazah SMP`, `Diterima di Kelas`, `Jurusan Peminatan`, `Tahun Ajaran Masuk`, `Tanggal Diterima`.
->     - **Bagian D (Orang Tua Kandung)**: `Nama Ayah`, `Tempat & Tanggal Lahir Ayah`, `Pendidikan Ayah`, `Pekerjaan Ayah`, `Penghasilan Ayah`, `No. HP Ayah`, serta `Nama Ibu`, `Tempat & Tanggal Lahir Ibu`, `Pendidikan Ibu`, `Pekerjaan Ibu`, `Penghasilan Ibu`, `No. HP Ibu`.
->     - **Bagian E (Wali Siswa)**: `Ada Wali (Ya/Tidak)`, `Nama Wali`, `Hubungan Keluarga`, `Pekerjaan Wali`, `Penghasilan Wali`, `No. HP Wali`.
->     - **Bagian F (Kelulusan / Meninggalkan Sekolah)**: `Status Siswa`, `Nomor Ijazah SMA`, `Melanjutkan Ke Perguruan Tinggi`.
-> - **Master Mata Pelajaran Fleksibel + Tombol Edit Mapel & Nilai**:
->   - Menyediakan **Pengelola Master Mata Pelajaran** (dapat diakses langsung di menu Nilai maupun Master Data) berisi daftar Nama Mata Pelajaran, Kelompok (`Wajib A`, `Wajib B`, `Peminatan`, `Lintas Minat`), dan KKM Default, ditambah opsi **Input Bebas** saat menambah mapel baru pada siswa tertentu.
->   - Menambahkan **Tombol Edit (`Edit`)** yang jelas pada setiap baris **Mata Pelajaran** dan setiap baris **Ekstrakurikuler** di halaman Input Nilai untuk membuka modal edit lengkap (mengubah nama mapel, memilih dari Master Mapel, mengubah kelompok, KKM Pengetahuan & Keterampilan, Nilai, Predikat, serta Ketentuan Tuntas/Belum Tuntas).
-> - **Impor Excel Nilai Mendukung 2 Format Tanpa Kode Singkatan**:
->   - **Format 1 — Baris Dinamis per Mapel (Direkomendasikan untuk Mapel Berbeda tiap Siswa)**: Setiap baris berisi `NIS`, `Nama Siswa`, `Semester`, `Tahun Ajaran`, `Kelas`, `Nama Mata Pelajaran` (nama asli seperti *FISIKA*, *EKONOMI*, *BAHASA SUNDA*), `Kelompok` (*Umum / Peminatan / Lintas Minat*), `KKM Pengetahuan`, `Nilai Pengetahuan`, `KKM Keterampilan`, `Nilai Keterampilan`, `Ketentuan`. Dilengkapi sheet/kolom untuk Ekstrakurikuler dan Kehadiran.
->   - **Format 2 — Kolom Melebar dengan Nama Mapel Asli**: Menggunakan header nama mata pelajaran yang jelas (misal `Pengetahuan - Pendidikan Agama`, `Keterampilan - Pendidikan Agama`, dst.) dan otomatis mendeteksi kolom mata pelajaran tambahan yang dibuat pengguna di Excel.
+> Rencana ini telah diperbarui untuk menyertakan dokumentasi lengkap repositori GitHub dan berkas pendukung *containerization* tanpa mengubah fitur Buku Induk yang sudah berjalan.
+
+- **Confirmed Decision 1 (Gaya Desain Utama)**: Menggunakan **Linear & Notion Workspace** sebagai tampilan *default* — kanvas bersih berfokus pada konten, garis pembatas tipis (`1px hairline border`), tipografi presisi (`Plus Jakarta Sans` & `JetBrains Mono` dengan angka *tabular-nums*), dan kontras warna Indigo/Slate modern.
+- **Confirmed Decision 2 (Multi-UI Design System Switcher)**: Menyediakan pemilih sistem desain (*UI Style Switcher*) langsung di bilah atas (*Top Bar*) untuk beralih kapan saja antara:
+  1. **Linear & Notion Workspace** *(Default Baru — Ultra-Clean & Compact)*
+  2. **Shadcn Minimalist Slate** *(Monokrom Zinc/Slate tajam bergaya Vercel)*
+  3. **Academic Institutional Navy** *(Biru Resmi Pendidikan / Kemendikbud Modern)*
+  4. **Emerald Kedinasan** *(Hijau Resmi Instansi)*
+  5. **Filament v3 Classic** *(Gaya Amber klasik)*
+  6. **Obsidian Dark Pro** *(Mode gelap kontras terukur)*
+- **Confirmed Decision 3 (Navigasi & Produktivitas)**: Menggunakan **Collapsible Ultra-Compact Sidebar** (dapat dilipat ke mode ikon `64px`) ditambah **Command Palette (`Ctrl+K`)** untuk mencari siswa (Nama/NIS/NISN) atau berpindah menu secara instan.
+- **Confirmed Decision 4 (Dokumentasi GitHub & Dukungan Multi-Platform)**: Menyusun dokumentasi `README.md` berbahasa Indonesia yang komprehensif untuk repositori GitHub, disertai konfigurasi siap pakai (`Dockerfile`, `docker-compose.yml`, dan konfigurasi produksi) agar aplikasi dapat langsung dijalankan di Linux, Docker, maupun Windows.
 
 ---
 
-### 1. Overview & Core Concept
+## 1. Overview & Core Concept
 
-- **What It Does**: Menghilangkan seluruh kesenjangan data antara Excel, Form Input Manual, dan Lembar Cetak Buku Induk, serta menghadirkan manajemen mata pelajaran dan impor nilai yang fleksibel untuk mengakomodasi perbedaan mata pelajaran (Peminatan & Lintas Minat) antar siswa.
-- **Target Audience / Persona**: Operator Dapodik, Staf Tata Usaha (TU), dan Wali Kelas SMA.
-- **Key Value**: Operator dapat mengimpor seluruh data Buku Induk (Bagian A–F) dalam sekali unggah Excel, mengunggah pas foto langsung saat tambah/edit siswa manual, mengedit mata pelajaran/nilai lewat tombol Edit yang jelas, dan mengimpor nilai tanpa perlu menghafal kode singkatan mata pelajaran.
-
----
-
-### 2. User Experience & Visual Design
-
-- **Key User Flows**:
-  1. **Input & Edit Manual Siswa Lengkap + Upload Pas Foto (Bagian A–F)**:
-     - Pada **Tab A (Pribadi)** di modal Tambah/Edit Siswa, tersedia kotak **Upload Pas Foto Siswa (3x4)** dengan pratinjau langsung (mendukung unggah file gambar `.jpg/.png/.webp` dari perangkat maupun input URL), serta input lengkap (`Anak Ke`, `Jumlah Saudara`, `Bahasa Sehari-hari`, `Tinggal Bersama`).
-     - Pada **Tab D (Orang Tua)** & **Tab E (Wali)**, seluruh field yang tampil di hasil cetak (`Tempat Lahir`, `Tanggal Lahir`, `Pendidikan Terakhir`, `Pekerjaan`, `Penghasilan`, `Hubungan Keluarga Wali`) tersedia lengkap.
-  2. **Impor & Ekspor Excel Siswa Selengkap Hasil Cetak (38 Kolom Bagian A–F)**:
-     - Saat mengunduh **Template Impor Siswa (`.xlsx`)** atau menekan **Ekspor Excel Siswa**, file Excel memuat 38 kolom terstruktur dari Bagian A hingga Bagian F.
-     - Saat file Excel diunggah kembali, parser otomatis membaca ke-38 kolom tersebut (termasuk Berat/Tinggi Badan, Golongan Darah, Riwayat Penyakit, No. Ijazah SMP, TTL/Pendidikan/Pekerjaan/Penghasilan Ayah & Ibu, serta Nama/Hubungan/Pekerjaan Wali) sehingga langsung muncul lengkap di lembar cetak.
-  3. **Master Mata Pelajaran + Tombol Edit Mapel & Ekstrakurikuler di Menu Nilai**:
-     - Di halaman **Input & Rekapitulasi Nilai Akademik**, terdapat tombol **Kelola Master Mata Pelajaran** untuk menambah/mengedit/menghapus daftar mata pelajaran standar sekolah (beserta kelompok & KKM).
-     - Saat menambah atau mengedit mapel pada siswa, pengguna dapat **memilih dari Dropdown Master Mata Pelajaran** atau **mengetik Nama Mapel Bebas**.
-     - Setiap baris tabel Mata Pelajaran dan Ekstrakurikuler memiliki tombol **Edit (ikon pensil)** di samping tombol **Hapus**, yang membuka modal Edit untuk mengubah Nama Mapel, Kelompok (`Wajib A/B`, `Peminatan`, `Lintas Minat`), KKM, Nilai, Predikat, dan Ketentuan.
-  4. **Impor Excel Nilai Ganda (Format Baris Dinamis & Format Kolom Nama Mapel Asli)**:
-     - Pada tab **Impor Nilai** di Pusat Impor Excel, pengguna dapat memilih atau mengunduh 2 jenis template:
-       - **Template Format Baris Dinamis (Fleksibel per Siswa)**: Sangat cocok bila tiap siswa mengambil mata pelajaran Lintas Minat atau Peminatan yang berbeda.
-       - **Template Format Kolom Nama Mapel Asli**: Menggunakan nama mata pelajaran lengkap (bukan kode `P_PAIBP`), dan otomatis mengenali kolom mata pelajaran apa pun yang ditambahkan di sebelah kanan.
+- **What It Does**:
+  - Menyegarkan antarmuka aplikasi menjadi ruang kerja modern ala Linear/Notion dengan fitur pencarian instan `Ctrl+K` dan *Theme Switcher*.
+  - Menyediakan panduan instalasi, *deployment*, dan manual penggunaan lengkap di `README.md` sehingga tim IT sekolah atau pengembang dapat memasang aplikasi di server lokal sekolah (Linux/Windows) maupun server *cloud* berbasis Docker.
+- **Target Audience / Persona**:
+  - **Operator TU, Wali Kelas & Kepala Sekolah**: Pengguna harian aplikasi Buku Induk Siswa.
+  - **Teknisi / Admin Server Sekolah**: Pihak yang melakukan *clone* dari GitHub dan men-*deploy* aplikasi di server Linux, Docker, atau PC Windows sekolah.
 
 ---
 
-### 3. Key Product Decisions & Trade-Offs
+## 2. User Experience & Visual Design
 
-- **Decision 1: Mendukung Dual-Parser (Deteksi Otomatis Format Baris vs Format Kolom) pada Impor Excel Nilai**
-  - *Chosen Approach*: Mesin pembaca Excel memeriksa baris header. Jika terdapat kolom `Nama_Mata_Pelajaran` / `Mata_Pelajaran`, sistem memproses sebagai **Format Baris Dinamis** (mengelompokkan baris berdasarkan `NIS` + `Semester`). Jika header berisi daftar mata pelajaran menyamping, sistem memproses sebagai **Format Kolom Nama Mapel Asli** secara dinamis.
-  - *Why*: Memberikan kebebasan penuh bagi sekolah—baik yang terbiasa dengan tabel rekap menyamping per kelas maupun tabel baris per mata pelajaran untuk siswa dengan lintas minat berbeda.
-- **Decision 2: Penyimpanan Pas Foto Unggahan Manual sebagai Data URL Terkompresi Ringan**
-  - *Chosen Approach*: Saat pengguna memilih file foto di form Tambah/Edit Siswa, foto langsung dikonversi dan disimpan ke `personal.fotoUrl` sehingga tampil seketika di tabel siswa, modal detail, dan lembar cetak PDF.
-  - *Why*: Bekerja instan tanpa ketergantungan server eksternal dan tetap tersimpan di penyimpanan lokal aplikasi.
+### Key User Flows
+1. **Navigasi Sidebar Ringkas & Mode Lipat (*Collapsible*)**:
+   - Tombol pelipat sidebar menyusutkan menu dari lebar `248px` menjadi `64px` (hanya ikon dengan *tooltip* instan), memberikan ruang ekstra lebar untuk tabel Data Siswa dan Nilai Rapor.
+2. **Pencarian Cepat & Lompat Modul via Command Palette (`Ctrl+K` / `⌘K`)**:
+   - Menekan `Ctrl+K` membuka jendela pencarian terpusat untuk mencari siswa berdasarkan Nama/NIS/NISN, berpindah ke modul mana pun, atau memicu aksi cepat (*Impor Excel*, *Tambah Siswa*, *Cetak PDF*).
+3. **Pergantian Gaya UI Instan (*UI Style Switcher*)**:
+   - Pemilih gaya UI di bilah atas mengubah skema warna permukaan, aksen, dan nuansa sidebar secara *real-time* dan menyimpannya di *browser*.
+
+### Visual Identity & Theme
+- **Aesthetic Direction**: *Linear / Notion Productivity Workspace* — bersih, tenang, dan berfokus pada keterbacaan data tabel.
+- **Color Palette & Mood (60-30-10 Rule)**:
+  - **60% Dominant Neutral Canvas**: Putih bersih (`#FAFAFA` / `#FFFFFF`) pada kanvas kerja utama.
+  - **30% Structural Surfaces**: Abu-abu sejuk lembut (`#F4F4F5` / `#F8FAFC`) dengan pembatas `1px solid #E4E4E7`.
+  - **10% Accent Budget**: Indigo Elektrik (`#4F46E5` / `#5E6AD2`) untuk elemen aktif dan tombol utama.
+- **Typography & Hierarchy**:
+  - *Display & UI Navigation*: `Plus Jakarta Sans` (SemiBold 600 & Medium 500).
+  - *Numeric & Tabular Data*: `JetBrains Mono` / `tabular-nums` untuk seluruh kolom NIS, NISN, KKM, dan nilai akademik.
 
 ---
 
-### 4. Technical Architecture & Data Strategy *(Technical Reference)*
+## 3. Struktur Dokumentasi GitHub (`README.md`) & Paket Deployment
 
-- **Architecture & Component Diagram**:
+Dokumentasi yang akan disusun mencakup bagian-bagian berikut secara terstruktur:
+
+1. **Gambaran Umum & Fitur Utama Aplikasi**:
+   - Penjelasan arsitektur aplikasi Buku Induk Siswa Digital SMA (Manajemen Siswa Bagian A–F, Pas Foto 3x4, Nilai Akademik Semester 1–6 Kurikulum Merdeka/K13, Master Mata Pelajaran, Presensi & Mutasi, Impor/Ekspor Excel, dan Cetak PDF Massal).
+   - Daftar Akun Demo Default (Admin TU, Kepala Sekolah, Wali Kelas) beserta kredensialnya.
+2. **Panduan Instalasi di Linux (Native / Bare-Metal)**:
+   - Persiapan prasyarat di Ubuntu/Debian, CentOS/RHEL/AlmaLinux, dan Arch Linux (`curl`, `git`, `nodejs` v20/v22 LTS via NodeSource atau NVM, `npm` / `bun`).
+   - Langkah *clone* repositori, instalasi dependensi (`npm install`), mode pengembangan (`npm run dev`), dan kompilasi produksi (`npm run build` & `npm run preview`).
+   - Menjalankan aplikasi di latar belakang menggunakan **PM2** (`pm2 start`, `pm2 startup`, `pm2 save`) atau **Systemd Service** (`/etc/systemd/system/buku-induk.service`).
+   - Konfigurasi **Nginx Reverse Proxy** siap pakai untuk menyajikan *build* statis (`dist/`) dengan dukungan *routing* SPA dan SSL/HTTPS.
+3. **Panduan Instalasi via Docker & Docker Compose (Linux / macOS / Windows)**:
+   - Penyediaan konfigurasi *Multi-Stage Build* (`Node.js Alpine` untuk *build* + `Nginx Alpine` ringan untuk *serving* pada port 80/3000).
+   - Perintah cepat satu baris: `docker compose up -d --build` serta perintah *build* manual (`docker build -t buku-induk-sma .` dan `docker run`).
+   - Cara memperbarui versi aplikasi dari GitHub (`git pull && docker compose up -d --build`).
+4. **Panduan Instalasi di Windows (Windows 10 / 11 & Windows Server)**:
+   - Instalasi Git & Node.js LTS menggunakan **Installer Resmi (.msi)**, **Winget** (`winget install OpenJS.NodeJS.LTS`), atau **Laragon / XAMPP**.
+   - Langkah menjalankan aplikasi melalui **PowerShell / Command Prompt (CMD)**.
+   - Cara membuat pintasan (*shortcut*) klik-ganda atau menjalankan aplikasi secara otomatis saat Windows menyala menggunakan PM2-Windows / NSSM.
+   - Opsi menjalankan di dalam **WSL2 (Windows Subsystem for Linux)** bagi pengguna Docker Desktop di Windows.
+5. **Panduan Penggunaan Operasional Sekolah (User Manual Singkat)**:
+   - Alur kerja awal tahun ajaran: Pengaturan Profil Sekolah -> Master Data (Tahun Ajaran, Jurusan, Tingkat, Kelas, Guru, Mata Pelajaran).
+   - Alur Impor & Ekspor Excel Siswa (49 Kolom Bagian A–F) serta Impor Nilai Rapor (Format Baris Dinamis & Format Kolom Nama Mapel Asli).
+   - Alur Pencetakan PDF Buku Induk (Pengaturan tata letak nilai 1/2/6 semester per halaman, header otomatis tiap halaman, dan tanda tangan Kepala Sekolah).
+
+---
+
+## 4. Technical Architecture & Data Strategy
+
+### Architecture & Component Diagram
+
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         STATE UTAMA & MASTER DATA                            │
-│  · students (StudentFullRecord[]) — Bagian A s/d F lengkap                   │
-│  · masterSubjects (MasterSubjectRecord[]) — Nama Mapel, Kelompok, KKM        │
-└──────────────────┬─────────────────────────────┬─────────────────────────────┘
-                   │                             │
-                   ▼                             ▼
-┌─────────────────────────────────────┐ ┌──────────────────────────────────────┐
-│  MENU DATA SISWA & FORM MANUAL      │ │  MENU INPUT NILAI & MASTER MAPEL     │
-│  · Upload Pas Foto 3x4 (File/URL)   │ │  · Modal Kelola Master Mapel         │
-│  · Form Lengkap Bagian A - F        │ │  · Dropdown Master Mapel + Input     │
-│  · Ekspor/Impor Excel 38 Kolom:     │ │    Bebas saat Tambah/Edit Mapel      │
-│    ├─ Jasmani (BB, TB, Gol. Darah,  │ │  · Tombol Edit (Modal Edit Mapel) &  │
-│    │  Riwayat Penyakit)             │ │    Tombol Edit Ekstrakurikuler       │
-│    ├─ SMP (Asal, No. Ijazah, Tgl)   │ └──────────────────┬───────────────────┘
-│    ├─ Ortu (TTL, Pendidikan, Kerja, │                    │
-│    │  Penghasilan, HP Ayah & Ibu)   │                    ▼
-│    └─ Wali (Nama, Hubungan, Kerja)  │ ┌──────────────────────────────────────┐
-└─────────────────────────────────────┘ │  PUSAT IMPOR EXCEL NILAI TANPA KODE  │
-                                        │  · Mode 1: Format Baris Dinamis      │
-                                        │    (Tiap siswa bebas beda mapel)     │
-                                        │  · Mode 2: Format Kolom Nama Mapel   │
-                                        │    Asli (Deteksi header otomatis)    │
-                                        └──────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        WORKSPACE SHELL (Linear / Notion)                   │
+│                                                                            │
+│  ┌──────────────┐  ┌────────────────────────────────────────────────────┐  │
+│  │ Collapsible  │  │ Minimal Top Bar: Breadcrumb · [Ctrl+K] · UI Theme  │  │
+│  │   Sidebar    │  ├────────────────────────────────────────────────────┤  │
+│  │ (248px/64px) │  │                                                    │  │
+│  │              │  │               ACTIVE WORKSPACE VIEW                │  │
+│  │ • Ringkasan  │  │  • Dashboard Analitik Sekolah                      │  │
+│  │ • Data Siswa │  │  • Data Buku Induk (Bagian A-F + Foto + Bulk Aksi) │  │
+│  │ • Nilai Rapor│  │  • Nilai Akademik (Sem 1-6 + Master Mapel + Edit)  │  │
+│  │ • Presensi   │  │  • Presensi, Mutasi & Catatan Wali Kelas           │  │
+│  │ • Master Data│  │  • Master Data, Profil Sekolah & Pratinjau Cetak   │  │
+│  │ • Cetak PDF  │  │                                                    │  │
+│  └──────────────┘  └────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────┬────────────────────────────────────┘
+                                        │
+        ┌───────────────────────────────┼───────────────────────────────┐
+        ▼                               ▼                               ▼
+┌──────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐
+│ COMMAND PALETTE      │  │ MULTI-UI THEME ENGINE    │  │ DEPLOYMENT SUITE   │
+│ • Cari Siswa (Ctrl+K)│  │ • linear-notion (Default)│  │ • README.md Lengkap│
+│ • Lompat Modul Cepat │  │ • shadcn-slate           │  │ • Dockerfile       │
+│ • Trigger Impor/Cetak│  │ • academic-navy          │  │ • docker-compose   │
+│ • Navigasi Keyboard  │  │ • emerald / filament     │  │ • Linux/Win Guide  │
+└──────────────────────┘  └──────────────────────────┘  └────────────────────┘
 ```
 
-- **Data Model Enhancements (`src/types/buku-induk.ts`)**:
-  - Menambahkan interface `MasterSubjectRecord`:
-    - `id: string`
-    - `namaMapel: string` (contoh: `'Pendidikan Agama dan Budi Pekerti'`, `'Fisika'`, `'Ekonomi'`)
-    - `kelompok: 'A' | 'B' | 'C' | 'Lintas Minat'`
-    - `kkmDefault: number`
-    - `kkmKeterampilanDefault: number`
-
-- **Complete 38-Column Student Excel Schema (`Template_Impor_Siswa_SMA_Lengkap.xlsx`)**:
-  1. `NIS`, 2. `NISN`, 3. `Nama_Lengkap`, 4. `Nama_Panggilan`, 5. `Jenis_Kelamin`, 6. `Tempat_Lahir`, 7. `Tanggal_Lahir`, 8. `Agama`, 9. `Kewarganegaraan`, 10. `Anak_Ke`, 11. `Jumlah_Saudara_Kandung`, 12. `Bahasa_Sehari_Hari`, 13. `Alamat`, 14. `Kelurahan`, 15. `Kecamatan`, 16. `Kota_Kabupaten`, 17. `Tinggal_Bersama`, 18. `No_HP_Siswa`,
-  19. `Berat_Badan_Kg`, 20. `Tinggi_Badan_Cm`, 21. `Golongan_Darah`, 22. `Riwayat_Penyakit`,
-  23. `Asal_SMP`, 24. `No_Ijazah_SMP`, 25. `Diterima_Di_Kelas`, 26. `Jurusan_Peminatan`, 27. `Tahun_Ajaran_Masuk`, 28. `Tanggal_Diterima`,
-  29. `Nama_Ayah`, 30. `TTL_Ayah`, 31. `Pendidikan_Ayah`, 32. `Pekerjaan_Ayah`, 33. `Penghasilan_Ayah`, 34. `No_HP_Ayah`,
-  35. `Nama_Ibu`, 36. `TTL_Ibu`, 37. `Pendidikan_Ibu`, 38. `Pekerjaan_Ibu`, 39. `Penghasilan_Ibu`, 40. `No_HP_Ibu`,
-  41. `Nama_Wali`, 42. `Hubungan_Keluarga_Wali`, 43. `Pekerjaan_Wali`, 44. `Penghasilan_Wali`,
-  45. `Status_Siswa`, 46. `No_Ijazah_SMA`, 47. `Melanjutkan_Ke`.
+### Data Model & State
+- **Sidebar & Workspace State**:
+  - `isSidebarCollapsed` (`boolean`, disimpan di `localStorage`): Mengatur mode lebar penuh atau mode ikon ringkas.
+  - `uiTheme` (`string`, disimpan di `localStorage`, *default* `'linear-notion'`): Mengatur sistem desain aktif di seluruh aplikasi.
+  - `isCommandPaletteOpen` (`boolean`): Mengatur modal pencarian cepat `Ctrl+K` / `⌘K`.
+- **Deployment & Containerization Strategy**:
+  - Menyertakan konfigurasi *container* ringan berbasis *multi-stage build* sehingga pengguna yang mengunduh dari GitHub dapat langsung menjalankan `docker compose up -d` tanpa perlu mengonfigurasi server web dari nol.

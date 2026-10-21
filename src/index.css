@@ -1,90 +1,224 @@
 @import "tailwindcss";
 
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  table, td, th, input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 /* ==========================================================================
-   5 DYNAMIC UI TEMPLATES ENGINE (CSS Variables & Comprehensive Theme Overrides)
+   6 DYNAMIC UI DESIGN SYSTEMS ENGINE
+   1. linear-notion (Default - Linear & Notion Workspace)
+   2. shadcn-slate (Shadcn UI Clean Minimalist)
+   3. sapphire-modern (Academic Institutional Navy / Kemendikbud Modern)
+   4. emerald-kedinasan (Hijau Resmi Dinas Pendidikan)
+   5. filament-amber (Filament v3 Classic Amber)
+   6. obsidian-dark (Obsidian Dark Pro)
    ========================================================================== */
 
-/* 1. Filament Amber (Default Classic Filament v3) */
-html[data-theme="filament-amber"] {
-  --theme-accent: #f59e0b;
-  --theme-accent-hover: #d97706;
-  --theme-sidebar-bg: #0f172a;
-  --theme-canvas-bg: #f1f5f9;
+/* 1. Linear & Notion Workspace (DEFAULT) */
+html[data-theme="linear-notion"] {
+  --color-amber-50: #eef2ff !important;
+  --color-amber-100: #e0e7ff !important;
+  --color-amber-200: #c7d2fe !important;
+  --color-amber-300: #a5b4fc !important;
+  --color-amber-400: #818cf8 !important;
+  --color-amber-500: #4f46e5 !important;
+  --color-amber-600: #4338ca !important;
+  --color-amber-700: #3730a3 !important;
+  --color-amber-800: #312e81 !important;
+  --color-amber-900: #1e1b4b !important;
+  --color-amber-950: #0f0d26 !important;
 }
 
-/* 2. Emerald Kedinasan (Hijau Resmi Dinas Pendidikan) */
-html[data-theme="emerald-kedinasan"] {
-  --color-amber-50: #ecfdf5 !important;
-  --color-amber-100: #d1fae5 !important;
-  --color-amber-200: #a7f3d0 !important;
-  --color-amber-300: #6ee7b7 !important;
-  --color-amber-400: #34d399 !important;
-  --color-amber-500: #059669 !important;
-  --color-amber-600: #047857 !important;
-  --color-amber-700: #065f46 !important;
-  --color-amber-800: #064e3b !important;
-  --color-amber-900: #064e3b !important;
-  --color-amber-950: #022c22 !important;
-}
-
-html[data-theme="emerald-kedinasan"] .bg-amber-500 {
-  background-color: #059669 !important;
+html[data-theme="linear-notion"] .bg-amber-500 {
+  background-color: #4f46e5 !important;
   color: #ffffff !important;
 }
-html[data-theme="emerald-kedinasan"] .bg-amber-500:hover,
-html[data-theme="emerald-kedinasan"] .hover\:bg-amber-400:hover {
-  background-color: #047857 !important;
+html[data-theme="linear-notion"] .bg-amber-500:hover,
+html[data-theme="linear-notion"] .hover\:bg-amber-400:hover {
+  background-color: #4338ca !important;
   color: #ffffff !important;
 }
-html[data-theme="emerald-kedinasan"] .bg-amber-50,
-html[data-theme="emerald-kedinasan"] .bg-amber-50\/60,
-html[data-theme="emerald-kedinasan"] .bg-amber-50\/40,
-html[data-theme="emerald-kedinasan"] .bg-amber-50\/30 {
-  background-color: #ecfdf5 !important;
+html[data-theme="linear-notion"] .bg-amber-50,
+html[data-theme="linear-notion"] .bg-amber-50\/60,
+html[data-theme="linear-notion"] .bg-amber-50\/40,
+html[data-theme="linear-notion"] .bg-amber-50\/30 {
+  background-color: #eef2ff !important;
 }
-html[data-theme="emerald-kedinasan"] .bg-amber-100 {
-  background-color: #d1fae5 !important;
+html[data-theme="linear-notion"] .bg-amber-100 {
+  background-color: #e0e7ff !important;
 }
-html[data-theme="emerald-kedinasan"] .text-amber-300,
-html[data-theme="emerald-kedinasan"] .text-amber-400 {
-  color: #34d399 !important;
+html[data-theme="linear-notion"] .text-amber-300,
+html[data-theme="linear-notion"] .text-amber-400 {
+  color: #6366f1 !important;
 }
-html[data-theme="emerald-kedinasan"] .text-amber-500,
-html[data-theme="emerald-kedinasan"] .text-amber-600 {
-  color: #059669 !important;
+html[data-theme="linear-notion"] .text-amber-500,
+html[data-theme="linear-notion"] .text-amber-600 {
+  color: #4f46e5 !important;
 }
-html[data-theme="emerald-kedinasan"] .text-amber-700,
-html[data-theme="emerald-kedinasan"] .text-amber-800,
-html[data-theme="emerald-kedinasan"] .text-amber-900 {
-  color: #065f46 !important;
+html[data-theme="linear-notion"] .text-amber-700,
+html[data-theme="linear-notion"] .text-amber-800,
+html[data-theme="linear-notion"] .text-amber-900 {
+  color: #3730a3 !important;
 }
-html[data-theme="emerald-kedinasan"] .border-amber-200,
-html[data-theme="emerald-kedinasan"] .border-amber-300 {
-  border-color: #6ee7b7 !important;
+html[data-theme="linear-notion"] .border-amber-200,
+html[data-theme="linear-notion"] .border-amber-300 {
+  border-color: #c7d2fe !important;
 }
-html[data-theme="emerald-kedinasan"] .border-amber-500 {
-  border-color: #059669 !important;
+html[data-theme="linear-notion"] .border-amber-500 {
+  border-color: #4f46e5 !important;
 }
-html[data-theme="emerald-kedinasan"] aside {
-  background-color: #022c22 !important;
-  border-color: #064e3b !important;
+/* Notion / Linear Light-Toned Ultra-Clean Sidebar */
+html[data-theme="linear-notion"] aside {
+  background-color: #f7f7f5 !important;
+  border-color: #e4e4e7 !important;
+  color: #18181b !important;
 }
-html[data-theme="emerald-kedinasan"] aside .bg-slate-800 {
-  background-color: #064e3b !important;
-  border-color: #047857 !important;
+html[data-theme="linear-notion"] aside .text-white,
+html[data-theme="linear-notion"] aside .text-slate-100,
+html[data-theme="linear-notion"] aside .text-slate-200 {
+  color: #18181b !important;
 }
-html[data-theme="emerald-kedinasan"] aside .bg-slate-950\/80 {
-  background-color: #011f18 !important;
+html[data-theme="linear-notion"] aside .text-slate-300,
+html[data-theme="linear-notion"] aside .text-slate-400,
+html[data-theme="linear-notion"] aside .text-slate-500 {
+  color: #52525b !important;
 }
-html[data-theme="emerald-kedinasan"] header {
-  border-bottom-color: #a7f3d0 !important;
-  background-color: #ecfdf5 !important;
+html[data-theme="linear-notion"] aside .border-slate-800,
+html[data-theme="linear-notion"] aside .border-slate-700 {
+  border-color: #e4e4e7 !important;
 }
-html[data-theme="emerald-kedinasan"] .theme-app-shell {
-  background-color: #f0fdf4 !important;
+html[data-theme="linear-notion"] aside .bg-slate-800,
+html[data-theme="linear-notion"] aside .bg-slate-800\/50,
+html[data-theme="linear-notion"] aside .bg-slate-800\/70 {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+  color: #18181b !important;
+}
+html[data-theme="linear-notion"] aside .bg-slate-950\/80,
+html[data-theme="linear-notion"] aside .bg-slate-900 {
+  background-color: #f0f0ee !important;
+}
+html[data-theme="linear-notion"] aside select {
+  background-color: #ffffff !important;
+  color: #18181b !important;
+  border-color: #d4d4d8 !important;
+}
+html[data-theme="linear-notion"] header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(8px);
+  border-bottom-color: #e4e4e7 !important;
+}
+html[data-theme="linear-notion"] .theme-app-shell {
+  background-color: #fafafa !important;
 }
 
-/* 3. Sapphire Modern (Biru Safir Korporat Akademik) */
+/* 2. Shadcn UI Clean Minimalist (Zinc / Monochrome High-Contrast) */
+html[data-theme="shadcn-slate"] {
+  --color-amber-50: #f4f4f5 !important;
+  --color-amber-100: #e4e4e7 !important;
+  --color-amber-200: #d4d4d8 !important;
+  --color-amber-300: #a1a1aa !important;
+  --color-amber-400: #71717a !important;
+  --color-amber-500: #18181b !important;
+  --color-amber-600: #27272a !important;
+  --color-amber-700: #3f3f46 !important;
+  --color-amber-800: #18181b !important;
+  --color-amber-900: #09090b !important;
+  --color-amber-950: #09090b !important;
+}
+
+html[data-theme="shadcn-slate"] .bg-amber-500 {
+  background-color: #18181b !important;
+  color: #fafafa !important;
+}
+html[data-theme="shadcn-slate"] .bg-amber-500:hover,
+html[data-theme="shadcn-slate"] .hover\:bg-amber-400:hover {
+  background-color: #27272a !important;
+  color: #ffffff !important;
+}
+html[data-theme="shadcn-slate"] .bg-amber-50,
+html[data-theme="shadcn-slate"] .bg-amber-50\/60,
+html[data-theme="shadcn-slate"] .bg-amber-50\/40,
+html[data-theme="shadcn-slate"] .bg-amber-50\/30 {
+  background-color: #f4f4f5 !important;
+}
+html[data-theme="shadcn-slate"] .bg-amber-100 {
+  background-color: #e4e4e7 !important;
+}
+html[data-theme="shadcn-slate"] .text-amber-300,
+html[data-theme="shadcn-slate"] .text-amber-400 {
+  color: #52525b !important;
+}
+html[data-theme="shadcn-slate"] .text-amber-500,
+html[data-theme="shadcn-slate"] .text-amber-600,
+html[data-theme="shadcn-slate"] .text-amber-700,
+html[data-theme="shadcn-slate"] .text-amber-800,
+html[data-theme="shadcn-slate"] .text-amber-900 {
+  color: #18181b !important;
+}
+html[data-theme="shadcn-slate"] .border-amber-200,
+html[data-theme="shadcn-slate"] .border-amber-300 {
+  border-color: #d4d4d8 !important;
+}
+html[data-theme="shadcn-slate"] .border-amber-500 {
+  border-color: #18181b !important;
+}
+html[data-theme="shadcn-slate"] aside {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+  color: #09090b !important;
+}
+html[data-theme="shadcn-slate"] aside .text-white,
+html[data-theme="shadcn-slate"] aside .text-slate-100,
+html[data-theme="shadcn-slate"] aside .text-slate-200 {
+  color: #09090b !important;
+}
+html[data-theme="shadcn-slate"] aside .text-slate-300,
+html[data-theme="shadcn-slate"] aside .text-slate-400,
+html[data-theme="shadcn-slate"] aside .text-slate-500 {
+  color: #71717a !important;
+}
+html[data-theme="shadcn-slate"] aside .border-slate-800,
+html[data-theme="shadcn-slate"] aside .border-slate-700 {
+  border-color: #e4e4e7 !important;
+}
+html[data-theme="shadcn-slate"] aside .bg-slate-800,
+html[data-theme="shadcn-slate"] aside .bg-slate-800\/50,
+html[data-theme="shadcn-slate"] aside .bg-slate-800\/70 {
+  background-color: #f4f4f5 !important;
+  border-color: #e4e4e7 !important;
+  color: #09090b !important;
+}
+html[data-theme="shadcn-slate"] aside .bg-slate-950\/80 {
+  background-color: #fafafa !important;
+}
+html[data-theme="shadcn-slate"] aside select {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  border-color: #e4e4e7 !important;
+}
+html[data-theme="shadcn-slate"] header {
+  background-color: #ffffff !important;
+  border-bottom-color: #e4e4e7 !important;
+}
+html[data-theme="shadcn-slate"] .theme-app-shell {
+  background-color: #ffffff !important;
+}
+
+/* 3. Academic Institutional Navy (Biru Safir Pendidikan / Kemendikbud Modern) */
 html[data-theme="sapphire-modern"] {
   --color-amber-50: #eff6ff !important;
   --color-amber-100: #dbeafe !important;
@@ -150,116 +284,124 @@ html[data-theme="sapphire-modern"] aside .bg-slate-950\/80 {
 }
 html[data-theme="sapphire-modern"] header {
   border-bottom-color: #bfdbfe !important;
-  background-color: #eff6ff !important;
+  background-color: #ffffff !important;
 }
 html[data-theme="sapphire-modern"] .theme-app-shell {
-  background-color: #eff6ff !important;
+  background-color: #f8fafc !important;
 }
 
-/* 4. Ruby Maroon (Merah Marun Almamater) */
-html[data-theme="ruby-maroon"] {
-  --color-amber-50: #fff1f2 !important;
-  --color-amber-100: #ffe4e6 !important;
-  --color-amber-200: #fecdd3 !important;
-  --color-amber-300: #fda4af !important;
-  --color-amber-400: #fb7185 !important;
-  --color-amber-500: #be123c !important;
-  --color-amber-600: #9f1239 !important;
-  --color-amber-700: #881337 !important;
-  --color-amber-800: #881337 !important;
-  --color-amber-900: #4c0519 !important;
-  --color-amber-950: #4c0519 !important;
+/* 4. Emerald Kedinasan (Hijau Resmi Dinas Pendidikan) */
+html[data-theme="emerald-kedinasan"] {
+  --color-amber-50: #ecfdf5 !important;
+  --color-amber-100: #d1fae5 !important;
+  --color-amber-200: #a7f3d0 !important;
+  --color-amber-300: #6ee7b7 !important;
+  --color-amber-400: #34d399 !important;
+  --color-amber-500: #059669 !important;
+  --color-amber-600: #047857 !important;
+  --color-amber-700: #065f46 !important;
+  --color-amber-800: #064e3b !important;
+  --color-amber-900: #064e3b !important;
+  --color-amber-950: #022c22 !important;
 }
 
-html[data-theme="ruby-maroon"] .bg-amber-500 {
-  background-color: #be123c !important;
+html[data-theme="emerald-kedinasan"] .bg-amber-500 {
+  background-color: #059669 !important;
   color: #ffffff !important;
 }
-html[data-theme="ruby-maroon"] .bg-amber-500:hover,
-html[data-theme="ruby-maroon"] .hover\:bg-amber-400:hover {
-  background-color: #9f1239 !important;
+html[data-theme="emerald-kedinasan"] .bg-amber-500:hover,
+html[data-theme="emerald-kedinasan"] .hover\:bg-amber-400:hover {
+  background-color: #047857 !important;
   color: #ffffff !important;
 }
-html[data-theme="ruby-maroon"] .bg-amber-50,
-html[data-theme="ruby-maroon"] .bg-amber-50\/60,
-html[data-theme="ruby-maroon"] .bg-amber-50\/40,
-html[data-theme="ruby-maroon"] .bg-amber-50\/30 {
-  background-color: #fff1f2 !important;
+html[data-theme="emerald-kedinasan"] .bg-amber-50,
+html[data-theme="emerald-kedinasan"] .bg-amber-50\/60,
+html[data-theme="emerald-kedinasan"] .bg-amber-50\/40,
+html[data-theme="emerald-kedinasan"] .bg-amber-50\/30 {
+  background-color: #ecfdf5 !important;
 }
-html[data-theme="ruby-maroon"] .bg-amber-100 {
-  background-color: #ffe4e6 !important;
+html[data-theme="emerald-kedinasan"] .bg-amber-100 {
+  background-color: #d1fae5 !important;
 }
-html[data-theme="ruby-maroon"] .text-amber-300,
-html[data-theme="ruby-maroon"] .text-amber-400 {
-  color: #fb7185 !important;
+html[data-theme="emerald-kedinasan"] .text-amber-300,
+html[data-theme="emerald-kedinasan"] .text-amber-400 {
+  color: #34d399 !important;
 }
-html[data-theme="ruby-maroon"] .text-amber-500,
-html[data-theme="ruby-maroon"] .text-amber-600 {
-  color: #be123c !important;
+html[data-theme="emerald-kedinasan"] .text-amber-500,
+html[data-theme="emerald-kedinasan"] .text-amber-600 {
+  color: #059669 !important;
 }
-html[data-theme="ruby-maroon"] .text-amber-700,
-html[data-theme="ruby-maroon"] .text-amber-800,
-html[data-theme="ruby-maroon"] .text-amber-900 {
-  color: #881337 !important;
+html[data-theme="emerald-kedinasan"] .text-amber-700,
+html[data-theme="emerald-kedinasan"] .text-amber-800,
+html[data-theme="emerald-kedinasan"] .text-amber-900 {
+  color: #065f46 !important;
 }
-html[data-theme="ruby-maroon"] .border-amber-200,
-html[data-theme="ruby-maroon"] .border-amber-300 {
-  border-color: #fda4af !important;
+html[data-theme="emerald-kedinasan"] .border-amber-200,
+html[data-theme="emerald-kedinasan"] .border-amber-300 {
+  border-color: #6ee7b7 !important;
 }
-html[data-theme="ruby-maroon"] .border-amber-500 {
-  border-color: #be123c !important;
+html[data-theme="emerald-kedinasan"] .border-amber-500 {
+  border-color: #059669 !important;
 }
-html[data-theme="ruby-maroon"] aside {
-  background-color: #4c0519 !important;
-  border-color: #881337 !important;
+html[data-theme="emerald-kedinasan"] aside {
+  background-color: #022c22 !important;
+  border-color: #064e3b !important;
 }
-html[data-theme="ruby-maroon"] aside .bg-slate-800 {
-  background-color: #881337 !important;
-  border-color: #9f1239 !important;
+html[data-theme="emerald-kedinasan"] aside .bg-slate-800 {
+  background-color: #064e3b !important;
+  border-color: #047857 !important;
 }
-html[data-theme="ruby-maroon"] aside .bg-slate-950\/80 {
-  background-color: #31020f !important;
+html[data-theme="emerald-kedinasan"] aside .bg-slate-950\/80 {
+  background-color: #011f18 !important;
 }
-html[data-theme="ruby-maroon"] header {
-  border-bottom-color: #fecdd3 !important;
-  background-color: #fff1f2 !important;
+html[data-theme="emerald-kedinasan"] header {
+  border-bottom-color: #a7f3d0 !important;
+  background-color: #ffffff !important;
 }
-html[data-theme="ruby-maroon"] .theme-app-shell {
-  background-color: #fff1f2 !important;
+html[data-theme="emerald-kedinasan"] .theme-app-shell {
+  background-color: #f8fafc !important;
 }
 
-/* 5. Obsidian Dark (Kontras Maksimal Hitam Obsidian & Emas) */
+/* 5. Filament Amber (Classic Filament v3) */
+html[data-theme="filament-amber"] {
+  --theme-accent: #f59e0b;
+  --theme-accent-hover: #d97706;
+  --theme-sidebar-bg: #0f172a;
+  --theme-canvas-bg: #f1f5f9;
+}
+
+/* 6. Obsidian Dark (Kontras Maksimal Hitam Obsidian & Indigo/Emas) */
 html[data-theme="obsidian-dark"] {
   color-scheme: dark;
-  --color-amber-500: #eab308 !important;
-  --color-amber-600: #ca8a04 !important;
+  --color-amber-500: #6366f1 !important;
+  --color-amber-600: #4f46e5 !important;
 }
 
 html[data-theme="obsidian-dark"] .theme-app-shell {
-  background-color: #020617 !important;
+  background-color: #09090b !important;
   color: #f8fafc !important;
 }
 html[data-theme="obsidian-dark"] header {
-  background-color: #0f172a !important;
-  border-bottom-color: #1e293b !important;
+  background-color: #09090b !important;
+  border-bottom-color: #27272a !important;
   color: #f8fafc !important;
 }
 html[data-theme="obsidian-dark"] aside {
-  background-color: #020617 !important;
-  border-color: #1e293b !important;
+  background-color: #09090b !important;
+  border-color: #27272a !important;
 }
 html[data-theme="obsidian-dark"] main .bg-white {
-  background-color: #0f172a !important;
-  color: #f1f5f9 !important;
-  border-color: #1e293b !important;
+  background-color: #18181b !important;
+  color: #f4f4f5 !important;
+  border-color: #27272a !important;
 }
 html[data-theme="obsidian-dark"] main .bg-slate-50,
 html[data-theme="obsidian-dark"] main .bg-slate-50\/50,
 html[data-theme="obsidian-dark"] main .bg-slate-50\/60,
 html[data-theme="obsidian-dark"] main .bg-slate-100,
 html[data-theme="obsidian-dark"] main .bg-slate-100\/70 {
-  background-color: #1e293b !important;
-  color: #e2e8f0 !important;
+  background-color: #27272a !important;
+  color: #e4e4e7 !important;
 }
 html[data-theme="obsidian-dark"] main .text-slate-900,
 html[data-theme="obsidian-dark"] main .text-slate-800,
@@ -270,19 +412,19 @@ html[data-theme="obsidian-dark"] header .text-slate-700 {
 html[data-theme="obsidian-dark"] main .text-slate-700,
 html[data-theme="obsidian-dark"] main .text-slate-600,
 html[data-theme="obsidian-dark"] main .text-slate-500 {
-  color: #cbd5e1 !important;
+  color: #a1a1aa !important;
 }
 html[data-theme="obsidian-dark"] main .border-slate-200,
 html[data-theme="obsidian-dark"] main .border-slate-300,
 html[data-theme="obsidian-dark"] main .border-slate-100 {
-  border-color: #334155 !important;
+  border-color: #27272a !important;
 }
 html[data-theme="obsidian-dark"] main input,
 html[data-theme="obsidian-dark"] main select,
 html[data-theme="obsidian-dark"] main textarea {
-  background-color: #1e293b !important;
+  background-color: #27272a !important;
   color: #f8fafc !important;
-  border-color: #475569 !important;
+  border-color: #3f3f46 !important;
 }
 
 @layer utilities {

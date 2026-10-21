@@ -284,6 +284,8 @@ export interface DatabaseBackupEntry {
 }
 
 export type UIThemePreset = 
+  | 'linear-notion'
+  | 'shadcn-slate'
   | 'filament-amber' 
   | 'emerald-kedinasan' 
   | 'sapphire-modern' 
