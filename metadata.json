@@ -1,0 +1,6 @@
+{
+  "name": "Buku Induk Siswa Digital SMA - Filament v3 & Laravel 11",
+  "description": "Sistem Informasi Buku Induk Siswa Digital SMA berbasis Laravel 11, Filament v3, dan Spatie Browsershot dengan arsitektur Queue Job untuk pencetakan PDF massal.",
+  "requestFramePermissions": []
+}
+

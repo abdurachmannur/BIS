@@ -1,0 +1,330 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   5 DYNAMIC UI TEMPLATES ENGINE (CSS Variables & Comprehensive Theme Overrides)
+   ========================================================================== */
+
+/* 1. Filament Amber (Default Classic Filament v3) */
+html[data-theme="filament-amber"] {
+  --theme-accent: #f59e0b;
+  --theme-accent-hover: #d97706;
+  --theme-sidebar-bg: #0f172a;
+  --theme-canvas-bg: #f1f5f9;
+}
+
+/* 2. Emerald Kedinasan (Hijau Resmi Dinas Pendidikan) */
+html[data-theme="emerald-kedinasan"] {
+  --color-amber-50: #ecfdf5 !important;
+  --color-amber-100: #d1fae5 !important;
+  --color-amber-200: #a7f3d0 !important;
+  --color-amber-300: #6ee7b7 !important;
+  --color-amber-400: #34d399 !important;
+  --color-amber-500: #059669 !important;
+  --color-amber-600: #047857 !important;
+  --color-amber-700: #065f46 !important;
+  --color-amber-800: #064e3b !important;
+  --color-amber-900: #064e3b !important;
+  --color-amber-950: #022c22 !important;
+}
+
+html[data-theme="emerald-kedinasan"] .bg-amber-500 {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}
+html[data-theme="emerald-kedinasan"] .bg-amber-500:hover,
+html[data-theme="emerald-kedinasan"] .hover\:bg-amber-400:hover {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+}
+html[data-theme="emerald-kedinasan"] .bg-amber-50,
+html[data-theme="emerald-kedinasan"] .bg-amber-50\/60,
+html[data-theme="emerald-kedinasan"] .bg-amber-50\/40,
+html[data-theme="emerald-kedinasan"] .bg-amber-50\/30 {
+  background-color: #ecfdf5 !important;
+}
+html[data-theme="emerald-kedinasan"] .bg-amber-100 {
+  background-color: #d1fae5 !important;
+}
+html[data-theme="emerald-kedinasan"] .text-amber-300,
+html[data-theme="emerald-kedinasan"] .text-amber-400 {
+  color: #34d399 !important;
+}
+html[data-theme="emerald-kedinasan"] .text-amber-500,
+html[data-theme="emerald-kedinasan"] .text-amber-600 {
+  color: #059669 !important;
+}
+html[data-theme="emerald-kedinasan"] .text-amber-700,
+html[data-theme="emerald-kedinasan"] .text-amber-800,
+html[data-theme="emerald-kedinasan"] .text-amber-900 {
+  color: #065f46 !important;
+}
+html[data-theme="emerald-kedinasan"] .border-amber-200,
+html[data-theme="emerald-kedinasan"] .border-amber-300 {
+  border-color: #6ee7b7 !important;
+}
+html[data-theme="emerald-kedinasan"] .border-amber-500 {
+  border-color: #059669 !important;
+}
+html[data-theme="emerald-kedinasan"] aside {
+  background-color: #022c22 !important;
+  border-color: #064e3b !important;
+}
+html[data-theme="emerald-kedinasan"] aside .bg-slate-800 {
+  background-color: #064e3b !important;
+  border-color: #047857 !important;
+}
+html[data-theme="emerald-kedinasan"] aside .bg-slate-950\/80 {
+  background-color: #011f18 !important;
+}
+html[data-theme="emerald-kedinasan"] header {
+  border-bottom-color: #a7f3d0 !important;
+  background-color: #ecfdf5 !important;
+}
+html[data-theme="emerald-kedinasan"] .theme-app-shell {
+  background-color: #f0fdf4 !important;
+}
+
+/* 3. Sapphire Modern (Biru Safir Korporat Akademik) */
+html[data-theme="sapphire-modern"] {
+  --color-amber-50: #eff6ff !important;
+  --color-amber-100: #dbeafe !important;
+  --color-amber-200: #bfdbfe !important;
+  --color-amber-300: #93c5fd !important;
+  --color-amber-400: #60a5fa !important;
+  --color-amber-500: #2563eb !important;
+  --color-amber-600: #1d4ed8 !important;
+  --color-amber-700: #1e40af !important;
+  --color-amber-800: #1e3a8a !important;
+  --color-amber-900: #1e3a8a !important;
+  --color-amber-950: #172554 !important;
+}
+
+html[data-theme="sapphire-modern"] .bg-amber-500 {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+html[data-theme="sapphire-modern"] .bg-amber-500:hover,
+html[data-theme="sapphire-modern"] .hover\:bg-amber-400:hover {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+html[data-theme="sapphire-modern"] .bg-amber-50,
+html[data-theme="sapphire-modern"] .bg-amber-50\/60,
+html[data-theme="sapphire-modern"] .bg-amber-50\/40,
+html[data-theme="sapphire-modern"] .bg-amber-50\/30 {
+  background-color: #eff6ff !important;
+}
+html[data-theme="sapphire-modern"] .bg-amber-100 {
+  background-color: #dbeafe !important;
+}
+html[data-theme="sapphire-modern"] .text-amber-300,
+html[data-theme="sapphire-modern"] .text-amber-400 {
+  color: #60a5fa !important;
+}
+html[data-theme="sapphire-modern"] .text-amber-500,
+html[data-theme="sapphire-modern"] .text-amber-600 {
+  color: #2563eb !important;
+}
+html[data-theme="sapphire-modern"] .text-amber-700,
+html[data-theme="sapphire-modern"] .text-amber-800,
+html[data-theme="sapphire-modern"] .text-amber-900 {
+  color: #1e40af !important;
+}
+html[data-theme="sapphire-modern"] .border-amber-200,
+html[data-theme="sapphire-modern"] .border-amber-300 {
+  border-color: #93c5fd !important;
+}
+html[data-theme="sapphire-modern"] .border-amber-500 {
+  border-color: #2563eb !important;
+}
+html[data-theme="sapphire-modern"] aside {
+  background-color: #172554 !important;
+  border-color: #1e3a8a !important;
+}
+html[data-theme="sapphire-modern"] aside .bg-slate-800 {
+  background-color: #1e3a8a !important;
+  border-color: #1d4ed8 !important;
+}
+html[data-theme="sapphire-modern"] aside .bg-slate-950\/80 {
+  background-color: #0f172a !important;
+}
+html[data-theme="sapphire-modern"] header {
+  border-bottom-color: #bfdbfe !important;
+  background-color: #eff6ff !important;
+}
+html[data-theme="sapphire-modern"] .theme-app-shell {
+  background-color: #eff6ff !important;
+}
+
+/* 4. Ruby Maroon (Merah Marun Almamater) */
+html[data-theme="ruby-maroon"] {
+  --color-amber-50: #fff1f2 !important;
+  --color-amber-100: #ffe4e6 !important;
+  --color-amber-200: #fecdd3 !important;
+  --color-amber-300: #fda4af !important;
+  --color-amber-400: #fb7185 !important;
+  --color-amber-500: #be123c !important;
+  --color-amber-600: #9f1239 !important;
+  --color-amber-700: #881337 !important;
+  --color-amber-800: #881337 !important;
+  --color-amber-900: #4c0519 !important;
+  --color-amber-950: #4c0519 !important;
+}
+
+html[data-theme="ruby-maroon"] .bg-amber-500 {
+  background-color: #be123c !important;
+  color: #ffffff !important;
+}
+html[data-theme="ruby-maroon"] .bg-amber-500:hover,
+html[data-theme="ruby-maroon"] .hover\:bg-amber-400:hover {
+  background-color: #9f1239 !important;
+  color: #ffffff !important;
+}
+html[data-theme="ruby-maroon"] .bg-amber-50,
+html[data-theme="ruby-maroon"] .bg-amber-50\/60,
+html[data-theme="ruby-maroon"] .bg-amber-50\/40,
+html[data-theme="ruby-maroon"] .bg-amber-50\/30 {
+  background-color: #fff1f2 !important;
+}
+html[data-theme="ruby-maroon"] .bg-amber-100 {
+  background-color: #ffe4e6 !important;
+}
+html[data-theme="ruby-maroon"] .text-amber-300,
+html[data-theme="ruby-maroon"] .text-amber-400 {
+  color: #fb7185 !important;
+}
+html[data-theme="ruby-maroon"] .text-amber-500,
+html[data-theme="ruby-maroon"] .text-amber-600 {
+  color: #be123c !important;
+}
+html[data-theme="ruby-maroon"] .text-amber-700,
+html[data-theme="ruby-maroon"] .text-amber-800,
+html[data-theme="ruby-maroon"] .text-amber-900 {
+  color: #881337 !important;
+}
+html[data-theme="ruby-maroon"] .border-amber-200,
+html[data-theme="ruby-maroon"] .border-amber-300 {
+  border-color: #fda4af !important;
+}
+html[data-theme="ruby-maroon"] .border-amber-500 {
+  border-color: #be123c !important;
+}
+html[data-theme="ruby-maroon"] aside {
+  background-color: #4c0519 !important;
+  border-color: #881337 !important;
+}
+html[data-theme="ruby-maroon"] aside .bg-slate-800 {
+  background-color: #881337 !important;
+  border-color: #9f1239 !important;
+}
+html[data-theme="ruby-maroon"] aside .bg-slate-950\/80 {
+  background-color: #31020f !important;
+}
+html[data-theme="ruby-maroon"] header {
+  border-bottom-color: #fecdd3 !important;
+  background-color: #fff1f2 !important;
+}
+html[data-theme="ruby-maroon"] .theme-app-shell {
+  background-color: #fff1f2 !important;
+}
+
+/* 5. Obsidian Dark (Kontras Maksimal Hitam Obsidian & Emas) */
+html[data-theme="obsidian-dark"] {
+  color-scheme: dark;
+  --color-amber-500: #eab308 !important;
+  --color-amber-600: #ca8a04 !important;
+}
+
+html[data-theme="obsidian-dark"] .theme-app-shell {
+  background-color: #020617 !important;
+  color: #f8fafc !important;
+}
+html[data-theme="obsidian-dark"] header {
+  background-color: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+html[data-theme="obsidian-dark"] aside {
+  background-color: #020617 !important;
+  border-color: #1e293b !important;
+}
+html[data-theme="obsidian-dark"] main .bg-white {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #1e293b !important;
+}
+html[data-theme="obsidian-dark"] main .bg-slate-50,
+html[data-theme="obsidian-dark"] main .bg-slate-50\/50,
+html[data-theme="obsidian-dark"] main .bg-slate-50\/60,
+html[data-theme="obsidian-dark"] main .bg-slate-100,
+html[data-theme="obsidian-dark"] main .bg-slate-100\/70 {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="obsidian-dark"] main .text-slate-900,
+html[data-theme="obsidian-dark"] main .text-slate-800,
+html[data-theme="obsidian-dark"] header .text-slate-800,
+html[data-theme="obsidian-dark"] header .text-slate-700 {
+  color: #f8fafc !important;
+}
+html[data-theme="obsidian-dark"] main .text-slate-700,
+html[data-theme="obsidian-dark"] main .text-slate-600,
+html[data-theme="obsidian-dark"] main .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+html[data-theme="obsidian-dark"] main .border-slate-200,
+html[data-theme="obsidian-dark"] main .border-slate-300,
+html[data-theme="obsidian-dark"] main .border-slate-100 {
+  border-color: #334155 !important;
+}
+html[data-theme="obsidian-dark"] main input,
+html[data-theme="obsidian-dark"] main select,
+html[data-theme="obsidian-dark"] main textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+@layer utilities {
+  @media print {
+    /* Hide navigation, sidebar, and buttons */
+    header, aside, .no-print, button, nav {
+      display: none !important;
+    }
+
+    body {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+      font-size: 11pt !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    main {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+    }
+
+    .print-sheet {
+      box-shadow: none !important;
+      border: none !important;
+      width: 100% !important;
+      min-height: auto !important;
+      padding: 0 !important;
+      page-break-after: always;
+      break-after: page;
+    }
+
+    .print-sheet:last-child {
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    /* Keep table borders and backgrounds sharp */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+}
