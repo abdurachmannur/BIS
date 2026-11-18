@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { 
   Calendar, 
@@ -9,12 +9,9 @@ import {
   Trash2, 
   Edit3, 
   CheckCircle, 
-  Save, 
-  ArrowRight,
   Sparkles,
   X,
   UserCheck,
-  FileSpreadsheet,
   Upload,
   Download,
   AlertTriangle,
@@ -27,9 +24,7 @@ import {
   DepartmentRecord, 
   GradeLevelRecord, 
   SchoolClassRecord,
-  StudentFullRecord,
-  Major,
-  GradeLevel
+  StudentFullRecord
 } from '../../types/buku-induk';
 
 export type MasterStepNumber = 1 | 2 | 3 | 4 | 5;
@@ -68,7 +63,6 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
   onUpdateSchoolClasses,
   students,
   onUnassignStudentsFromClass,
-  onNavigateToNext,
   onShowNotification,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +70,15 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
   // Add modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBatchClassModal, setShowBatchClassModal] = useState(false);
+
+  // Multi-row selection state for bulk delete in each Master Data step
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [bulkDeleteConfirmMode, setBulkDeleteConfirmMode] = useState<'selected' | 'clear_all' | null>(null);
+
+  useEffect(() => {
+    setSelectedRowIds([]);
+    setBulkDeleteConfirmMode(null);
+  }, [currentStep]);
 
   // Edit modal states
   const [editingAcademicYear, setEditingAcademicYear] = useState<AcademicYearRecord | null>(null);
@@ -128,7 +131,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
   const [newNipWaliKelas, setNewNipWaliKelas] = useState(teachers[0]?.nip || '');
   const [newKelasKapasitas, setNewKelasKapasitas] = useState<number>(36);
 
-  // Batch generator states (for varying class counts per year, e.g., 7 MIPA classes this year, 6 next year)
+  // Batch generator states
   const [batchTahunAjaran, setBatchTahunAjaran] = useState<string>(activeYearStr);
   const [batchTingkat, setBatchTingkat] = useState<string>(gradeLevels[0]?.tingkat || 'X');
   const [batchJurusan, setBatchJurusan] = useState<string>(departments[0]?.kode || 'MIPA');
@@ -266,7 +269,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+      const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
 
       if (rows.length === 0) {
         onShowNotification('Berkas Kosong', 'Tidak ditemukan baris data pada lembar pertama Excel.', 'warning');
@@ -477,7 +480,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
     );
   };
 
-  // Batch Generate N Classes for an Academic Year + Grade + Major (e.g. 7 MIPA classes this year, 6 next year)
+  // Batch Generate N Classes for an Academic Year + Grade + Major
   const handleBatchGenerateClasses = (e: React.FormEvent) => {
     e.preventDefault();
     const count = Math.max(1, Math.min(20, Number(batchJumlahKelas) || 1));
@@ -517,7 +520,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
     onShowNotification('Data Kelas Diperbarui', `Rombel ${editingSchoolClass.namaKelas} (${editingSchoolClass.id}) berhasil disimpan.`, 'success');
   };
 
-  // Execute confirmed deletion
+  // Execute confirmed single deletion
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
 
@@ -543,16 +546,9 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       );
     }
 
+    setSelectedRowIds((prev) => prev.filter((id) => id !== deleteTarget.id));
     setDeleteTarget(null);
   };
-
-  const stepsMeta = [
-    { step: 1 as MasterStepNumber, title: '1. Tahun Ajaran', subtitle: 'Kurikulum & Semester', icon: Calendar, count: academicYears.length },
-    { step: 2 as MasterStepNumber, title: '2. Data Guru', subtitle: 'NIP & Wali Kelas', icon: UserCheck, count: teachers.length },
-    { step: 3 as MasterStepNumber, title: '3. Data Jurusan', subtitle: 'MIPA, IPS, Bahasa', icon: Layers, count: departments.length },
-    { step: 4 as MasterStepNumber, title: '4. Data Tingkat', subtitle: 'Kelas X, XI, XII', icon: GraduationCap, count: gradeLevels.length },
-    { step: 5 as MasterStepNumber, title: '5. Data Kelas', subtitle: 'ID Unik per Tahun', icon: School, count: schoolClasses.length },
-  ];
 
   // Unique list of academic years for class filtering & dropdowns
   const uniqueAcademicYearStrings = Array.from(
@@ -572,8 +568,90 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
     currentStep === 3 ? 'Data Jurusan' :
     currentStep === 4 ? 'Data Tingkat' : 'Data Kelas';
 
+  const currentStepRowIds: string[] =
+    currentStep === 1 ? academicYears.map((x) => x.id) :
+    currentStep === 2 ? teachers.map((x) => x.id) :
+    currentStep === 3 ? departments.map((x) => x.id) :
+    currentStep === 4 ? gradeLevels.map((x) => x.id) :
+    filteredSchoolClasses.map((x) => x.id);
+
+  const isAllCurrentSelected =
+    currentStepRowIds.length > 0 &&
+    currentStepRowIds.every((id) => selectedRowIds.includes(id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllCurrentSelected) {
+      setSelectedRowIds([]);
+    } else {
+      setSelectedRowIds(currentStepRowIds);
+    }
+  };
+
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedRowIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // Execute Bulk Delete (Selected Rows or Clear Entire Current Master Data)
+  const handleExecuteBulkDelete = () => {
+    if (!bulkDeleteConfirmMode) return;
+    const isClearAll = bulkDeleteConfirmMode === 'clear_all';
+
+    if (currentStep === 1) {
+      const remaining = isClearAll
+        ? []
+        : academicYears.filter((ay) => !selectedRowIds.includes(ay.id));
+      onUpdateAcademicYears(remaining);
+    } else if (currentStep === 2) {
+      const remaining = isClearAll
+        ? []
+        : teachers.filter((t) => !selectedRowIds.includes(t.id));
+      onUpdateTeachers(remaining);
+    } else if (currentStep === 3) {
+      const remaining = isClearAll
+        ? []
+        : departments.filter((d) => !selectedRowIds.includes(d.id));
+      onUpdateDepartments(remaining);
+    } else if (currentStep === 4) {
+      const remaining = isClearAll
+        ? []
+        : gradeLevels.filter((gl) => !selectedRowIds.includes(gl.id));
+      onUpdateGradeLevels(remaining);
+    } else if (currentStep === 5) {
+      const classesToDelete = isClearAll
+        ? schoolClasses
+        : schoolClasses.filter((sc) => selectedRowIds.includes(sc.id));
+      const remaining = isClearAll
+        ? []
+        : schoolClasses.filter((sc) => !selectedRowIds.includes(sc.id));
+
+      classesToDelete.forEach((cls) => onUnassignStudentsFromClass(cls));
+      onUpdateSchoolClasses(remaining);
+    }
+
+    onShowNotification(
+      isClearAll ? `${currentStepName} Dikosongkan` : `Data ${currentStepName} Dihapus`,
+      isClearAll
+        ? `Seluruh data pada Master ${currentStepName} telah dikosongkan.`
+        : `${selectedRowIds.length} baris pada Master ${currentStepName} telah dihapus.`,
+      'warning'
+    );
+
+    setSelectedRowIds([]);
+    setBulkDeleteConfirmMode(null);
+  };
+
+  const stepsMeta = [
+    { step: 1 as MasterStepNumber, title: '1. Tahun Ajaran', subtitle: 'Kurikulum & Semester', icon: Calendar, count: academicYears.length },
+    { step: 2 as MasterStepNumber, title: '2. Data Guru', subtitle: 'NIP & Wali Kelas', icon: UserCheck, count: teachers.length },
+    { step: 3 as MasterStepNumber, title: '3. Data Jurusan', subtitle: 'MIPA, IPS, Bahasa', icon: Layers, count: departments.length },
+    { step: 4 as MasterStepNumber, title: '4. Data Tingkat', subtitle: 'Kelas X, XI, XII', icon: GraduationCap, count: gradeLevels.length },
+    { step: 5 as MasterStepNumber, title: '5. Data Kelas', subtitle: 'ID Unik per Tahun', icon: School, count: schoolClasses.length },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Hidden Excel File Input for Current Step */}
       <input
         ref={fileInputRef}
@@ -591,19 +669,21 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
           return (
             <button
               key={item.step}
+              type="button"
               onClick={() => onSelectStep(item.step)}
-              className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`flex items-center justify-between p-3 rounded-lg border text-left transition-all cursor-pointer ${
                 isCurrent
-                  ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/30 ring-2 ring-amber-500/20 shadow-sm'
-                  : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900'
+                  ? 'border-blue-600 dark:border-blue-500 bg-blue-50/80 dark:bg-blue-950/50 ring-1 ring-blue-600/20 shadow-xs'
+                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/70'
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold ${
+                  style={isCurrent ? { backgroundColor: 'var(--accent-primary)' } : undefined}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md font-bold ${
                     isCurrent
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
-                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      ? 'text-white shadow-2xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                   }`}
                 >
                   <IconComponent className="h-4 w-4" />
@@ -617,7 +697,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                   </div>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ml-1">
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 ml-1">
                 {item.count}
               </span>
             </button>
@@ -626,48 +706,53 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       </div>
 
       {/* Main Content Card for Active Step */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
-        {/* Card Header with Direct Excel (.xlsx) Template & Import Buttons */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                LANGKAH {currentStep} DARI 8
-              </span>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {currentStep === 1 && 'Manajemen Data Tahun Ajaran & Semester'}
-                {currentStep === 2 && 'Master Data Guru & Wali Kelas (NIP, Nama, Jabatan)'}
-                {currentStep === 3 && 'Manajemen Data Jurusan / Peminatan SMA'}
-                {currentStep === 4 && 'Manajemen Data Tingkat Kelas (Fase E & Fase F)'}
-                {currentStep === 5 && 'Manajemen Data Rombongan Belajar (Kelas) Unik per Tahun Ajaran'}
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {currentStep === 1 && 'Atur tahun pelajaran aktif untuk dasar pengelompokan kelas dan buku induk.'}
-              {currentStep === 2 && 'Data guru yang diinput di sini otomatis muncul sebagai pilihan dropdown Wali Kelas dan Ketua Jurusan.'}
-              {currentStep === 3 && 'Daftar jurusan yang diinput akan muncul pada dropdown pembuatan Kelas dan input Siswa.'}
-              {currentStep === 4 && 'Konfigurasi tingkat kelas X, XI, dan XII beserta target rombel.'}
-              {currentStep === 5 && 'Setiap kelas memiliki ID Database unik yang terikat pada Tahun Ajaran. Jumlah kelas tiap jurusan dapat berbeda setiap tahunnya.'}
-            </p>
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+        {/* Enterprise Action Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+              Master {currentStepName} ({currentStepRowIds.length})
+            </span>
+
+            {selectedRowIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setBulkDeleteConfirmMode('selected')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Hapus Terpilih ({selectedRowIds.length})</span>
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Direct Excel Template Download */}
+            {currentStepRowIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setBulkDeleteConfirmMode('clear_all')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 cursor-pointer"
+                title={`Kosongkan seluruh data ${currentStepName}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Kosongkan {currentStepName}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleDownloadStepTemplate}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shadow-2xs cursor-pointer"
-              title={`Unduh Template Resmi Excel (.xlsx) untuk ${currentStepName}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs cursor-pointer"
+              title={`Unduh Template Excel (.xlsx) untuk ${currentStepName}`}
             >
-              <Download className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Template {currentStepName} (.xlsx)</span>
+              <Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Template .xlsx</span>
             </button>
 
-            {/* Direct Excel Import Upload */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs cursor-pointer"
               title={`Impor berkas .xlsx untuk ${currentStepName}`}
             >
               <Upload className="h-3.5 w-3.5" />
@@ -678,29 +763,20 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowBatchClassModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-amber-500/40 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 cursor-pointer"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                <span>Generate N Kelas per Tahun</span>
+                <span>Generate Kelas Massal</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
             >
-              <Plus className="h-4 w-4" />
-              <span>+ Tambah {currentStepName}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onNavigateToNext}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
-            >
-              <span>Lanjut Langkah {currentStep + 1}</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5" />
+              <span>Tambah {currentStepName}</span>
             </button>
           </div>
         </div>
@@ -710,7 +786,15 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/60 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={isAllCurrentSelected}
+                      onChange={handleToggleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3 px-4">ID</th>
                   <th className="py-3 px-4">Tahun Ajaran</th>
                   <th className="py-3 px-4">Semester</th>
@@ -719,68 +803,95 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                {academicYears.map((ay) => (
-                  <tr key={ay.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50">
-                    <td className="py-3 px-4 font-mono text-slate-500">{ay.id}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white font-mono">{ay.tahun}</td>
-                    <td className="py-3 px-4">{ay.semester}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-md font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                        {ay.kurikulum}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {ay.isActive ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
-                          <CheckCircle className="h-3 w-3" /> Aktif
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleSetActiveYear(ay.id)}
-                          className="text-[11px] text-slate-500 hover:text-amber-600 underline cursor-pointer"
-                        >
-                          Jadikan Aktif
-                        </button>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => setEditingAcademicYear({ ...ay })}
-                          className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                          title="Edit Tahun Ajaran"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setDeleteTarget({
-                              type: 'tahun_ajaran',
-                              id: ay.id,
-                              label: `${ay.tahun} (${ay.semester})`,
-                            })
-                          }
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                          title="Hapus Tahun Ajaran"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                {academicYears.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                      Data Tahun Ajaran masih kosong. Klik tombol <strong>Tambah Tahun Ajaran</strong> untuk menambahkan.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  academicYears.map((ay) => (
+                    <tr key={ay.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200">
+                      <td className="py-2.5 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowIds.includes(ay.id)}
+                          onChange={() => handleToggleSelectRow(ay.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-2.5 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">{ay.id}</td>
+                      <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white font-mono">{ay.tahun}</td>
+                      <td className="py-2.5 px-4">{ay.semester}</td>
+                      <td className="py-2.5 px-4">
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {ay.kurikulum}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        {ay.isActive ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+                            <CheckCircle className="h-3 w-3" /> Aktif
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSetActiveYear(ay.id)}
+                            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          >
+                            Jadikan Aktif
+                          </button>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingAcademicYear({ ...ay })}
+                            className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Edit Tahun Ajaran"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteTarget({
+                                type: 'tahun_ajaran',
+                                id: ay.id,
+                                label: `${ay.tahun} (${ay.semester})`,
+                              })
+                            }
+                            className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded cursor-pointer"
+                            title="Hapus Tahun Ajaran"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         )}
 
-        {/* STEP 2 TABLE: DATA GURU (NIP, NAMA LENGKAP, JABATAN WALI KELAS) */}
+        {/* STEP 2 TABLE: DATA GURU */}
         {currentStep === 2 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/60 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={isAllCurrentSelected}
+                      onChange={handleToggleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3 px-4">ID Guru</th>
                   <th className="py-3 px-4">NIP / NUPTK</th>
                   <th className="py-3 px-4">Nama Lengkap & Gelar</th>
@@ -788,44 +899,62 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                {teachers.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50">
-                    <td className="py-3 px-4 font-mono text-slate-500">{t.id}</td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-200">{t.nip}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{t.namaLengkap}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 rounded font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                        {t.jabatanWaliKelas}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => setEditingTeacher({ ...t })}
-                          className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                          title="Edit Data Guru"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setDeleteTarget({
-                              type: 'guru',
-                              id: t.id,
-                              label: t.namaLengkap,
-                              sublabel: `NIP: ${t.nip}`,
-                            })
-                          }
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                          title="Hapus Data Guru"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                {teachers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                      Data Guru masih kosong. Klik tombol <strong>Tambah Data Guru</strong> atau <strong>Impor .xlsx</strong>.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  teachers.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200">
+                      <td className="py-2.5 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowIds.includes(t.id)}
+                          onChange={() => handleToggleSelectRow(t.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-2.5 px-4 font-mono text-xs text-slate-500 dark:text-slate-400">{t.id}</td>
+                      <td className="py-2.5 px-4 font-mono font-semibold text-slate-800 dark:text-slate-200">{t.nip}</td>
+                      <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white">{t.namaLengkap}</td>
+                      <td className="py-2.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800">
+                          {t.jabatanWaliKelas}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingTeacher({ ...t })}
+                            className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Edit Data Guru"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteTarget({
+                                type: 'guru',
+                                id: t.id,
+                                label: t.namaLengkap,
+                                sublabel: `NIP: ${t.nip}`,
+                              })
+                            }
+                            className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded cursor-pointer"
+                            title="Hapus Data Guru"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -836,51 +965,77 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/60 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={isAllCurrentSelected}
+                      onChange={handleToggleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3 px-4">Kode</th>
                   <th className="py-3 px-4">Nama Lengkap Jurusan / Peminatan</th>
-                  <th className="py-3 px-4">Ketua Program / Koordinator (Data Guru)</th>
+                  <th className="py-3 px-4">Ketua Program / Koordinator</th>
                   <th className="py-3 px-4 text-center">Kuota Siswa</th>
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                {departments.map((dept) => (
-                  <tr key={dept.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50">
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-mono">
-                        {dept.kode}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{dept.nama}</td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{dept.ketuaJurusan}</td>
-                    <td className="py-3 px-4 text-center font-mono font-bold">{dept.kuotaSiswa} Siswa</td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => setEditingDepartment({ ...dept })}
-                          className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                          title="Edit Jurusan"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setDeleteTarget({
-                              type: 'jurusan',
-                              id: dept.id,
-                              label: `${dept.kode} - ${dept.nama}`,
-                            })
-                          }
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                          title="Hapus Jurusan"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                {departments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                      Data Jurusan masih kosong. Klik tombol <strong>Tambah Data Jurusan</strong> untuk menambahkan.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  departments.map((dept) => (
+                    <tr key={dept.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200">
+                      <td className="py-2.5 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowIds.includes(dept.id)}
+                          onChange={() => handleToggleSelectRow(dept.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800 font-mono">
+                          {dept.kode}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white">{dept.nama}</td>
+                      <td className="py-2.5 px-4 text-slate-700 dark:text-slate-300">{dept.ketuaJurusan}</td>
+                      <td className="py-2.5 px-4 text-center font-mono font-bold text-slate-900 dark:text-white">{dept.kuotaSiswa} Siswa</td>
+                      <td className="py-2.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingDepartment({ ...dept })}
+                            className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Edit Jurusan"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteTarget({
+                                type: 'jurusan',
+                                id: dept.id,
+                                label: `${dept.kode} - ${dept.nama}`,
+                              })
+                            }
+                            className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded cursor-pointer"
+                            title="Hapus Jurusan"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -891,7 +1046,15 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/60 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={isAllCurrentSelected}
+                      onChange={handleToggleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3 px-4">Tingkat</th>
                   <th className="py-3 px-4">Keterangan Fase Kurikulum</th>
                   <th className="py-3 px-4 text-center">Target Rombel</th>
@@ -899,71 +1062,92 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                {gradeLevels.map((gl) => {
-                  const actualClassesCount = schoolClasses.filter((c) => c.tingkat === gl.tingkat).length;
-                  return (
-                    <tr key={gl.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50">
-                      <td className="py-3 px-4">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 font-black font-mono">
-                          {gl.tingkat}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{gl.keterangan}</td>
-                      <td className="py-3 px-4 text-center font-mono font-bold">{gl.jumlahRombel} Rombel</td>
-                      <td className="py-3 px-4 text-center font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                        {actualClassesCount} Kelas Aktif
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            onClick={() => setEditingGradeLevel({ ...gl })}
-                            className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                            title="Edit Tingkat"
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                {gradeLevels.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                      Data Tingkat Kelas masih kosong. Klik tombol <strong>Tambah Data Tingkat</strong> untuk menambahkan.
+                    </td>
+                  </tr>
+                ) : (
+                  gradeLevels.map((gl) => {
+                    const actualClassesCount = schoolClasses.filter((c) => c.tingkat === gl.tingkat).length;
+                    return (
+                      <tr key={gl.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200">
+                        <td className="py-2.5 px-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedRowIds.includes(gl.id)}
+                            onChange={() => handleToggleSelectRow(gl.id)}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                          />
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <span
+                            style={{ backgroundColor: 'var(--accent-primary)' }}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded text-white font-bold font-mono text-xs"
                           >
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              setDeleteTarget({
-                                type: 'tingkat',
-                                id: gl.id,
-                                label: `Tingkat ${gl.tingkat}`,
-                              })
-                            }
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                            title="Hapus Tingkat"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                            {gl.tingkat}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-white">{gl.keterangan}</td>
+                        <td className="py-2.5 px-4 text-center font-mono font-bold text-slate-900 dark:text-white">{gl.jumlahRombel} Rombel</td>
+                        <td className="py-2.5 px-4 text-center font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                          {actualClassesCount} Kelas Aktif
+                        </td>
+                        <td className="py-2.5 px-4 text-right">
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingGradeLevel({ ...gl })}
+                              className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                              title="Edit Tingkat"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDeleteTarget({
+                                  type: 'tingkat',
+                                  id: gl.id,
+                                  label: `Tingkat ${gl.tingkat}`,
+                                })
+                              }
+                              className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded cursor-pointer"
+                              title="Hapus Tingkat"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         )}
 
-        {/* STEP 5 TABLE: ROMBEL KELAS (UNIQUE DATABASE ID PER ACADEMIC YEAR) */}
+        {/* STEP 5 TABLE: ROMBEL KELAS */}
         {currentStep === 5 && (
           <div>
             {/* Filter Bar by Tahun Ajaran */}
-            <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2">
-                <Filter className="h-3.5 w-3.5 text-amber-500" />
+                <Filter className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                 <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  Filter Kelas per Tahun Ajaran:
+                  Filter Tahun Ajaran:
                 </span>
                 <div className="flex flex-wrap items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setSelectedClassYearFilter('ALL')}
-                    className={`px-2.5 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer ${
                       selectedClassYearFilter === 'ALL'
-                        ? 'bg-amber-500 text-slate-950'
-                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                        ? 'accent-btn-primary text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
                     }`}
                   >
                     Semua Tahun ({schoolClasses.length})
@@ -975,28 +1159,32 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                         key={yr}
                         type="button"
                         onClick={() => setSelectedClassYearFilter(yr)}
-                        className={`px-2.5 py-1 rounded-md font-mono font-bold transition-colors cursor-pointer ${
+                        className={`px-2.5 py-1 rounded font-mono font-semibold transition-colors cursor-pointer ${
                           selectedClassYearFilter === yr
-                            ? 'bg-amber-500 text-slate-950'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                            ? 'accent-btn-primary text-white'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        {yr} ({count} Kelas)
+                        {yr} ({count})
                       </button>
                     );
                   })}
                 </div>
               </div>
-
-              <span className="text-[11px] text-slate-500">
-                Nama kelas tetap standar (misal <code className="font-mono font-bold">X-MIPA-1</code>), dengan <strong>ID Database unik</strong> di setiap Tahun Ajaran.
-              </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/60 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                    <th className="py-3 px-4 w-10">
+                      <input
+                        type="checkbox"
+                        checked={isAllCurrentSelected}
+                        onChange={handleToggleSelectAll}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-3 px-4">ID Database Unik</th>
                     <th className="py-3 px-4">Tahun Ajaran</th>
                     <th className="py-3 px-4">Nama Kelas</th>
@@ -1006,70 +1194,88 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                     <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                  {filteredSchoolClasses.map((sc) => {
-                    const registeredStudents = students.filter(
-                      (s) =>
-                        s.previousEducation.classId === sc.id ||
-                        (!s.previousEducation.classId && s.previousEducation.diterimaDiKelas === sc.namaKelas)
-                    );
-                    return (
-                      <tr key={sc.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                            <Hash className="h-3 w-3 text-amber-500" />
-                            {sc.id}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
-                          {sc.tahunAjaran}
-                        </td>
-                        <td className="py-3 px-4 font-black text-slate-900 dark:text-white font-mono text-sm">
-                          {sc.namaKelas}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-slate-700 dark:text-slate-300 font-semibold">
-                            Tingkat {sc.tingkat} · {sc.jurusan}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-900 dark:text-white">{sc.waliKelas}</div>
-                          <div className="text-[10px] font-mono text-slate-400">NIP. {sc.nipWaliKelas}</div>
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono">
-                          <span className="font-bold text-slate-900 dark:text-white">{registeredStudents.length}</span>
-                          <span className="text-slate-400"> / {sc.kapasitas} Siswa</span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              onClick={() => setEditingSchoolClass({ ...sc })}
-                              className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                              title="Edit Kelas"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                setDeleteTarget({
-                                  type: 'kelas',
-                                  id: sc.id,
-                                  label: sc.namaKelas,
-                                  sublabel: `ID: ${sc.id} · TA ${sc.tahunAjaran}`,
-                                  affectedStudentCount: registeredStudents.length,
-                                  classObj: sc,
-                                })
-                              }
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                              title="Hapus Kelas"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                  {filteredSchoolClasses.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                        Data Kelas masih kosong. Klik tombol <strong>Tambah Data Kelas</strong> atau <strong>Generate Kelas Massal</strong>.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSchoolClasses.map((sc) => {
+                      const registeredStudents = students.filter(
+                        (s) =>
+                          s.previousEducation.classId === sc.id ||
+                          (!s.previousEducation.classId && s.previousEducation.diterimaDiKelas === sc.namaKelas)
+                      );
+                      return (
+                        <tr key={sc.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200">
+                          <td className="py-2.5 px-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedRowIds.includes(sc.id)}
+                              onChange={() => handleToggleSelectRow(sc.id)}
+                              className="h-4 w-4 rounded border-slate-300 text-blue-600 cursor-pointer"
+                            />
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              <Hash className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                              {sc.id}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {sc.tahunAjaran}
+                          </td>
+                          <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white font-mono">
+                            {sc.namaKelas}
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800">
+                              Tingkat {sc.tingkat} · {sc.jurusan}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <div className="font-semibold text-slate-900 dark:text-white">{sc.waliKelas}</div>
+                            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">NIP. {sc.nipWaliKelas}</div>
+                          </td>
+                          <td className="py-2.5 px-4 text-center font-mono">
+                            <span className="font-bold text-slate-900 dark:text-white">{registeredStudents.length}</span>
+                            <span className="text-slate-500 dark:text-slate-400"> / {sc.kapasitas}</span>
+                          </td>
+                          <td className="py-2.5 px-4 text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingSchoolClass({ ...sc })}
+                                className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                title="Edit Kelas"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDeleteTarget({
+                                    type: 'kelas',
+                                    id: sc.id,
+                                    label: sc.namaKelas,
+                                    sublabel: `ID: ${sc.id} · TA ${sc.tahunAjaran}`,
+                                    affectedStudentCount: registeredStudents.length,
+                                    classObj: sc,
+                                  })
+                                }
+                                className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded cursor-pointer"
+                                title="Hapus Kelas"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1078,20 +1284,64 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       </div>
 
       {/* ======================================================================
-          MODAL KONFIRMASI PENGHAPUSAN MASTER DATA (AMAN BAGI BUKU INDUK SISWA)
+          MODAL KONFIRMASI HAPUS MASSAL / KOSONGKAN MASTER DATA
+          ====================================================================== */}
+      {bulkDeleteConfirmMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {bulkDeleteConfirmMode === 'clear_all'
+                    ? `Kosongkan Seluruh ${currentStepName}?`
+                    : `Hapus ${selectedRowIds.length} Data ${currentStepName} Terpilih?`}
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {bulkDeleteConfirmMode === 'clear_all'
+                    ? `Seluruh baris data pada Master ${currentStepName} akan dihapus sehingga Anda dapat mengisi ulang data kustom dari awal.`
+                    : `${selectedRowIds.length} baris data yang Anda centang pada Master ${currentStepName} akan dihapus dari database.`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setBulkDeleteConfirmMode(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteBulkDelete}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer"
+              >
+                Ya, Hapus Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================================
+          MODAL KONFIRMASI PENGHAPUSAN SATUAN MASTER DATA
           ====================================================================== */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Konfirmasi Penghapusan Data Master
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Anda akan menghapus <strong>{deleteTarget.label}</strong>{' '}
                   {deleteTarget.sublabel && <span className="font-mono">({deleteTarget.sublabel})</span>}.
                 </p>
@@ -1099,32 +1349,30 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
             </div>
 
             {deleteTarget.type === 'kelas' && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 dark:border-amber-900/50 dark:bg-amber-950/30 text-xs space-y-1.5">
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3.5 text-xs space-y-1.5">
                 <div className="font-bold text-amber-900 dark:text-amber-300">
-                  Dampak Terhadap Siswa di Kelas Ini ({deleteTarget.affectedStudentCount || 0} Siswa Terdaftar):
+                  Dampak Terhadap Siswa ({deleteTarget.affectedStudentCount || 0} Siswa Terdaftar):
                 </div>
-                <p className="text-amber-800 dark:text-amber-200/90 leading-relaxed">
-                  Sesuai pengaturan perlindungan Buku Induk, <strong>data siswa di kelas tersebut TIDAK dihapus permanen</strong>, melainkan status kelasnya akan <strong>dikosongkan (Tanpa Kelas / Belum Ditentukan)</strong> agar dapat dipindahkan ke kelas/rombel lain.
+                <p className="text-amber-800 dark:text-amber-200 leading-relaxed">
+                  Data siswa di kelas tersebut tidak dihapus permanen, melainkan status kelasnya dikosongkan agar dapat dipindahkan ke kelas lain.
                 </p>
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-500 shadow-sm cursor-pointer"
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer"
               >
-                {deleteTarget.type === 'kelas'
-                  ? 'Ya, Hapus Kelas & Kosongkan Kelas Siswa'
-                  : 'Ya, Hapus Data Master'}
+                Ya, Hapus Data
               </button>
             </div>
           </div>
@@ -1136,28 +1384,34 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
           ====================================================================== */}
       {showBatchClassModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Generate Beberapa Kelas Sekaligus per Tahun Ajaran
+                  Generate Kelas Massal per Tahun Ajaran
                 </h3>
-                <p className="text-[11px] text-slate-500">
-                  Mendukung jumlah kelas berbeda tiap tahun (misal tahun ini 7 kelas MIPA, tahun depan 6 kelas MIPA)
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Otomatis membuat rombel berurutan dengan ID unik
                 </p>
               </div>
-              <button onClick={() => setShowBatchClassModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setShowBatchClassModal(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleBatchGenerateClasses} className="space-y-4 text-xs">
+            <form onSubmit={handleBatchGenerateClasses} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
               <div>
-                <label className="block font-semibold mb-1">Pilih Tahun Ajaran (dari Data Tahun Ajaran)</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                  Pilih Tahun Ajaran
+                </label>
                 <select
                   value={batchTahunAjaran}
                   onChange={(e) => setBatchTahunAjaran(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                 >
                   {Array.from(new Set(academicYears.map((y) => y.tahun))).map((th) => (
                     <option key={th} value={th}>
@@ -1169,11 +1423,13 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">Pilih Tingkat (Data Tingkat)</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Pilih Tingkat
+                  </label>
                   <select
                     value={batchTingkat}
                     onChange={(e) => setBatchTingkat(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-bold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-bold"
                   >
                     {gradeLevels.map((gl) => (
                       <option key={gl.id} value={gl.tingkat}>
@@ -1184,11 +1440,13 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1">Pilih Jurusan (Data Jurusan)</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Pilih Jurusan
+                  </label>
                   <select
                     value={batchJurusan}
                     onChange={(e) => setBatchJurusan(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-bold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-bold"
                   >
                     {departments.map((d) => (
                       <option key={d.id} value={d.kode}>
@@ -1201,46 +1459,50 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">Jumlah Kelas Tahun Ini</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Jumlah Kelas
+                  </label>
                   <input
                     type="number"
                     min={1}
                     max={20}
                     value={batchJumlahKelas}
                     onChange={(e) => setBatchJumlahKelas(parseInt(e.target.value) || 1)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                   />
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Hasil: {batchTingkat}-{batchJurusan}-1 s/d {batchTingkat}-{batchJurusan}-{batchJumlahKelas}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1">Kapasitas per Kelas</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Kapasitas per Kelas
+                  </label>
                   <input
                     type="number"
                     min={10}
                     max={50}
                     value={batchKapasitas}
                     onChange={(e) => setBatchKapasitas(parseInt(e.target.value) || 36)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t dark:border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowBatchClassModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600"
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
                 >
-                  Generate {batchJumlahKelas} Kelas (ID Unik)
+                  Generate {batchJumlahKelas} Kelas
                 </button>
               </div>
             </form>
@@ -1249,140 +1511,184 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       )}
 
       {/* ======================================================================
-          ADD MODAL FOR STEPS 1 - 5 (WITH RELATIONAL DROPDOWNS)
+          ADD MODAL FOR STEPS 1 - 5
           ====================================================================== */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {currentStep === 1 && 'Tambah Tahun Ajaran Baru'}
                 {currentStep === 2 && 'Tambah Master Data Guru'}
                 {currentStep === 3 && 'Tambah Jurusan / Peminatan'}
                 {currentStep === 4 && 'Tambah Tingkat Kelas'}
-                {currentStep === 5 && 'Tambah Rombel Kelas Baru (ID Unik)'}
+                {currentStep === 5 && 'Tambah Rombel Kelas Baru'}
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {currentStep === 1 && (
-              <form onSubmit={handleAddAcademicYear} className="space-y-4 text-xs">
+              <form onSubmit={handleAddAcademicYear} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
                 <div>
-                  <label className="block font-semibold mb-1">Tahun Ajaran (YYYY/YYYY) *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Tahun Ajaran (YYYY/YYYY) *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newTahun}
                     onChange={(e) => setNewTahun(e.target.value)}
                     placeholder="2025/2026"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Semester</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Semester
+                  </label>
                   <select
                     value={newSemester}
                     onChange={(e) => setNewSemester(e.target.value as 'Ganjil' | 'Genap')}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   >
                     <option value="Ganjil">Semester Ganjil</option>
                     <option value="Genap">Semester Genap</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Kurikulum</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Kurikulum
+                  </label>
                   <select
                     value={newKurikulum}
                     onChange={(e) => setNewKurikulum(e.target.value as 'Kurikulum Merdeka' | 'Kurikulum 2013')}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   >
                     <option value="Kurikulum Merdeka">Kurikulum Merdeka</option>
                     <option value="Kurikulum 2013">Kurikulum 2013</option>
                   </select>
                 </div>
-                <div className="flex justify-end gap-2 pt-3">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg border">Batal</button>
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan</button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                  >
+                    Simpan
+                  </button>
                 </div>
               </form>
             )}
 
             {currentStep === 2 && (
-              <form onSubmit={handleAddTeacher} className="space-y-4 text-xs">
+              <form onSubmit={handleAddTeacher} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
                 <div>
-                  <label className="block font-semibold mb-1">NIP / NUPTK Guru *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    NIP / NUPTK Guru *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newGuruNip}
                     onChange={(e) => setNewGuruNip(e.target.value)}
                     placeholder="Contoh: 197804122005011002"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Nama Lengkap & Gelar Akademik *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Nama Lengkap & Gelar Akademik *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newGuruNama}
                     onChange={(e) => setNewGuruNama(e.target.value)}
                     placeholder="Contoh: Drs. Bambang Hermawan, M.Pd."
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-semibold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Jabatan Wali Kelas / Tugas *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Jabatan Wali Kelas / Tugas *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newGuruJabatan}
                     onChange={(e) => setNewGuruJabatan(e.target.value)}
                     placeholder="Contoh: Wali Kelas X / Wali Kelas XI"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   />
                 </div>
-                <div className="flex justify-end gap-2 pt-3">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg border">Batal</button>
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Guru</button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                  >
+                    Simpan Guru
+                  </button>
                 </div>
               </form>
             )}
 
             {currentStep === 3 && (
-              <form onSubmit={handleAddDepartment} className="space-y-4 text-xs">
+              <form onSubmit={handleAddDepartment} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
                 <div>
-                  <label className="block font-semibold mb-1">Kode Jurusan *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Kode Jurusan *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newJurusanKode}
                     onChange={(e) => setNewJurusanKode(e.target.value.toUpperCase())}
-                    placeholder="Contoh: MIPA / IPS / BAHASA / TEKNIK"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                    placeholder="Contoh: MIPA / IPS / BAHASA"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Nama Lengkap Jurusan *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Nama Lengkap Jurusan *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newJurusanNama}
                     onChange={(e) => setNewJurusanNama(e.target.value)}
                     placeholder="Contoh: Matematika dan Ilmu Pengetahuan Alam"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Ketua Jurusan (Pilih dari Dropdown Data Guru)</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Ketua Jurusan (Pilih dari Data Guru)
+                  </label>
                   <select
                     value={newKetuaJurusan}
                     onChange={(e) => setNewKetuaJurusan(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-semibold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-semibold"
                   >
-                    <option value="">-- Pilih Guru dari Master Data Guru --</option>
+                    <option value="">-- Pilih Guru --</option>
                     {teachers.map((t) => (
                       <option key={t.id} value={t.namaLengkap}>
                         {t.namaLengkap} (NIP: {t.nip})
@@ -1391,71 +1697,103 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Kuota Daya Tampung Siswa</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Kuota Daya Tampung Siswa
+                  </label>
                   <input
                     type="number"
                     value={newJurusanKuota}
                     onChange={(e) => setNewJurusanKuota(parseInt(e.target.value) || 180)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
-                <div className="flex justify-end gap-2 pt-3">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg border">Batal</button>
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan</button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                  >
+                    Simpan
+                  </button>
                 </div>
               </form>
             )}
 
             {currentStep === 4 && (
-              <form onSubmit={handleAddGradeLevel} className="space-y-4 text-xs">
+              <form onSubmit={handleAddGradeLevel} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
                 <div>
-                  <label className="block font-semibold mb-1">Tingkat Kelas *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Tingkat Kelas *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newTingkat}
                     onChange={(e) => setNewTingkat(e.target.value.toUpperCase())}
                     placeholder="Contoh: X / XI / XII"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Keterangan Fase</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Keterangan Fase
+                  </label>
                   <input
                     type="text"
                     required
                     value={newTingkatKeterangan}
                     onChange={(e) => setNewTingkatKeterangan(e.target.value)}
                     placeholder="Contoh: Tingkat X (Fase E - Kurikulum Merdeka)"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Target Jumlah Rombel</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Target Jumlah Rombel
+                  </label>
                   <input
                     type="number"
                     min={1}
                     max={30}
                     value={newTingkatRombel}
                     onChange={(e) => setNewTingkatRombel(parseInt(e.target.value) || 7)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
-                <div className="flex justify-end gap-2 pt-3">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg border">Batal</button>
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan</button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                  >
+                    Simpan
+                  </button>
                 </div>
               </form>
             )}
 
             {currentStep === 5 && (
-              <form onSubmit={handleAddSchoolClass} className="space-y-4 text-xs">
+              <form onSubmit={handleAddSchoolClass} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
                 <div>
-                  <label className="block font-semibold mb-1">Pilih Tahun Ajaran (dari Data Tahun Ajaran) *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Pilih Tahun Ajaran *
+                  </label>
                   <select
                     value={newKelasTahunAjaran}
                     onChange={(e) => setNewKelasTahunAjaran(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                   >
                     {Array.from(new Set(academicYears.map((y) => y.tahun))).map((th) => (
                       <option key={th} value={th}>
@@ -1467,11 +1805,13 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold mb-1">Tingkat (Data Tingkat) *</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                      Tingkat *
+                    </label>
                     <select
                       value={newKelasTingkat}
                       onChange={(e) => setNewKelasTingkat(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-bold"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-bold"
                     >
                       {gradeLevels.map((gl) => (
                         <option key={gl.id} value={gl.tingkat}>
@@ -1481,11 +1821,13 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block font-semibold mb-1">Jurusan (Data Jurusan) *</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                      Jurusan *
+                    </label>
                     <select
                       value={newKelasJurusan}
                       onChange={(e) => setNewKelasJurusan(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-bold"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-bold"
                     >
                       {departments.map((d) => (
                         <option key={d.id} value={d.kode}>
@@ -1497,22 +1839,23 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1">Nama Kelas / Rombel (Tetap Standar) *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Nama Kelas / Rombel *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newNamaKelas}
                     onChange={(e) => setNewNamaKelas(e.target.value)}
                     placeholder={`Contoh: ${newKelasTingkat}-${newKelasJurusan}-1`}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                   />
-                  <span className="text-[10px] text-slate-400">
-                    ID Database unik akan otomatis dibuat: <code className="font-mono">{generateUniqueClassId(newKelasTahunAjaran, newNamaKelas || `${newKelasTingkat}-${newKelasJurusan}-1`)}</code>
-                  </span>
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1">Pilih Wali Kelas (Dropdown dari Data Guru) *</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                    Pilih Wali Kelas *
+                  </label>
                   <select
                     value={newWaliKelas}
                     onChange={(e) => {
@@ -1523,12 +1866,12 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                         setNewNipWaliKelas(foundTeacher.nip);
                       }
                     }}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-semibold"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-semibold"
                   >
                     <option value="">-- Pilih Guru Wali Kelas --</option>
                     {teachers.map((t) => (
                       <option key={t.id} value={t.namaLengkap}>
-                        {t.namaLengkap} — NIP: {t.nip} ({t.jabatanWaliKelas})
+                        {t.namaLengkap} — NIP: {t.nip}
                       </option>
                     ))}
                   </select>
@@ -1536,30 +1879,45 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold mb-1">NIP Wali Kelas (Otomatis)</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                      NIP Wali Kelas
+                    </label>
                     <input
                       type="text"
                       value={newNipWaliKelas}
                       onChange={(e) => setNewNipWaliKelas(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold mb-1">Kapasitas Siswa</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                      Kapasitas Siswa
+                    </label>
                     <input
                       type="number"
                       min={1}
                       max={50}
                       value={newKelasKapasitas}
                       onChange={(e) => setNewKelasKapasitas(parseInt(e.target.value) || 36)}
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-lg border">Batal</button>
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Kelas</button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                  >
+                    Simpan Kelas
+                  </button>
                 </div>
               </form>
             )}
@@ -1574,49 +1932,64 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       {/* EDIT MODAL STEP 1: Tahun Ajaran */}
       {editingAcademicYear && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Data Tahun Ajaran</h3>
-              <button onClick={() => setEditingAcademicYear(null)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setEditingAcademicYear(null)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveEditAcademicYear} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveEditAcademicYear} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
               <div>
-                <label className="block font-semibold mb-1">Tahun Ajaran</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Tahun Ajaran</label>
                 <input
                   type="text"
                   required
                   value={editingAcademicYear.tahun}
                   onChange={(e) => setEditingAcademicYear({ ...editingAcademicYear, tahun: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Semester</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Semester</label>
                 <select
                   value={editingAcademicYear.semester}
                   onChange={(e) => setEditingAcademicYear({ ...editingAcademicYear, semester: e.target.value as 'Ganjil' | 'Genap' })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                 >
                   <option value="Ganjil">Semester Ganjil</option>
                   <option value="Genap">Semester Genap</option>
                 </select>
               </div>
               <div>
-                <label className="block font-semibold mb-1">Kurikulum</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Kurikulum</label>
                 <select
                   value={editingAcademicYear.kurikulum}
                   onChange={(e) => setEditingAcademicYear({ ...editingAcademicYear, kurikulum: e.target.value as 'Kurikulum Merdeka' | 'Kurikulum 2013' })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                 >
                   <option value="Kurikulum Merdeka">Kurikulum Merdeka</option>
                   <option value="Kurikulum 2013">Kurikulum 2013</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => setEditingAcademicYear(null)} className="px-4 py-2 rounded-lg border">Batal</button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Perubahan</button>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingAcademicYear(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
               </div>
             </form>
           </div>
@@ -1626,47 +1999,62 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       {/* EDIT MODAL STEP 2: Guru */}
       {editingTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Data Guru</h3>
-              <button onClick={() => setEditingTeacher(null)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setEditingTeacher(null)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveEditTeacher} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveEditTeacher} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
               <div>
-                <label className="block font-semibold mb-1">NIP / NUPTK</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">NIP / NUPTK</label>
                 <input
                   type="text"
                   required
                   value={editingTeacher.nip}
                   onChange={(e) => setEditingTeacher({ ...editingTeacher, nip: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Nama Lengkap & Gelar</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Nama Lengkap & Gelar</label>
                 <input
                   type="text"
                   required
                   value={editingTeacher.namaLengkap}
                   onChange={(e) => setEditingTeacher({ ...editingTeacher, namaLengkap: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-semibold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-semibold"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Jabatan Wali Kelas</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Jabatan Wali Kelas</label>
                 <input
                   type="text"
                   required
                   value={editingTeacher.jabatanWaliKelas}
                   onChange={(e) => setEditingTeacher({ ...editingTeacher, jabatanWaliKelas: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => setEditingTeacher(null)} className="px-4 py-2 rounded-lg border">Batal</button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Perubahan</button>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingTeacher(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
               </div>
             </form>
           </div>
@@ -1676,40 +2064,44 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       {/* EDIT MODAL STEP 3: Jurusan */}
       {editingDepartment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Data Jurusan</h3>
-              <button onClick={() => setEditingDepartment(null)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setEditingDepartment(null)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveEditDepartment} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveEditDepartment} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
               <div>
-                <label className="block font-semibold mb-1">Kode Jurusan</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Kode Jurusan</label>
                 <input
                   type="text"
                   required
                   value={editingDepartment.kode}
                   onChange={(e) => setEditingDepartment({ ...editingDepartment, kode: e.target.value.toUpperCase() })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Nama Lengkap Jurusan</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Nama Lengkap Jurusan</label>
                 <input
                   type="text"
                   required
                   value={editingDepartment.nama}
                   onChange={(e) => setEditingDepartment({ ...editingDepartment, nama: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Ketua Jurusan (Pilih dari Data Guru)</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Ketua Jurusan</label>
                 <select
                   value={editingDepartment.ketuaJurusan}
                   onChange={(e) => setEditingDepartment({ ...editingDepartment, ketuaJurusan: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-semibold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-semibold"
                 >
                   {teachers.map((t) => (
                     <option key={t.id} value={t.namaLengkap}>
@@ -1719,18 +2111,29 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block font-semibold mb-1">Kuota Siswa</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Kuota Siswa</label>
                 <input
                   type="number"
                   required
                   value={editingDepartment.kuotaSiswa}
                   onChange={(e) => setEditingDepartment({ ...editingDepartment, kuotaSiswa: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => setEditingDepartment(null)} className="px-4 py-2 rounded-lg border">Batal</button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Perubahan</button>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingDepartment(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
               </div>
             </form>
           </div>
@@ -1740,47 +2143,62 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       {/* EDIT MODAL STEP 4: Tingkat */}
       {editingGradeLevel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Data Tingkat</h3>
-              <button onClick={() => setEditingGradeLevel(null)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setEditingGradeLevel(null)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveEditGradeLevel} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveEditGradeLevel} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
               <div>
-                <label className="block font-semibold mb-1">Tingkat Kelas</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Tingkat Kelas</label>
                 <input
                   type="text"
                   required
                   value={editingGradeLevel.tingkat}
                   onChange={(e) => setEditingGradeLevel({ ...editingGradeLevel, tingkat: e.target.value.toUpperCase() })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Keterangan Fase</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Keterangan Fase</label>
                 <input
                   type="text"
                   required
                   value={editingGradeLevel.keterangan}
                   onChange={(e) => setEditingGradeLevel({ ...editingGradeLevel, keterangan: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Target Jumlah Rombel</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Target Jumlah Rombel</label>
                 <input
                   type="number"
                   required
                   value={editingGradeLevel.jumlahRombel}
                   onChange={(e) => setEditingGradeLevel({ ...editingGradeLevel, jumlahRombel: parseInt(e.target.value) || 1 })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => setEditingGradeLevel(null)} className="px-4 py-2 rounded-lg border">Batal</button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Perubahan</button>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingGradeLevel(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
               </div>
             </form>
           </div>
@@ -1790,23 +2208,27 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
       {/* EDIT MODAL STEP 5: Kelas */}
       {editingSchoolClass && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3 dark:border-slate-800">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Data Kelas</h3>
-                <span className="text-[10px] font-mono text-slate-400">ID Database: {editingSchoolClass.id}</span>
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400">ID: {editingSchoolClass.id}</span>
               </div>
-              <button onClick={() => setEditingSchoolClass(null)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setEditingSchoolClass(null)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveEditSchoolClass} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveEditSchoolClass} className="space-y-4 text-xs text-slate-800 dark:text-slate-200">
               <div>
-                <label className="block font-semibold mb-1">Tahun Ajaran</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Tahun Ajaran</label>
                 <select
                   value={editingSchoolClass.tahunAjaran}
                   onChange={(e) => setEditingSchoolClass({ ...editingSchoolClass, tahunAjaran: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                 >
                   {Array.from(new Set(academicYears.map((y) => y.tahun))).map((th) => (
                     <option key={th} value={th}>
@@ -1816,22 +2238,22 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block font-semibold mb-1">Nama Kelas / Rombel</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Nama Kelas / Rombel</label>
                 <input
                   type="text"
                   required
                   value={editingSchoolClass.namaKelas}
                   onChange={(e) => setEditingSchoolClass({ ...editingSchoolClass, namaKelas: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono font-bold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono font-bold"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">Tingkat (Data Tingkat)</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Tingkat</label>
                   <select
                     value={editingSchoolClass.tingkat}
                     onChange={(e) => setEditingSchoolClass({ ...editingSchoolClass, tingkat: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   >
                     {gradeLevels.map((gl) => (
                       <option key={gl.id} value={gl.tingkat}>
@@ -1841,11 +2263,11 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Jurusan (Data Jurusan)</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Jurusan</label>
                   <select
                     value={editingSchoolClass.jurusan}
                     onChange={(e) => setEditingSchoolClass({ ...editingSchoolClass, jurusan: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
                   >
                     {departments.map((d) => (
                       <option key={d.id} value={d.kode}>
@@ -1856,7 +2278,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                 </div>
               </div>
               <div>
-                <label className="block font-semibold mb-1">Pilih Wali Kelas (dari Data Guru)</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Pilih Wali Kelas</label>
                 <select
                   value={editingSchoolClass.waliKelas}
                   onChange={(e) => {
@@ -1868,7 +2290,7 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
                       nipWaliKelas: foundTeacher ? foundTeacher.nip : editingSchoolClass.nipWaliKelas,
                     });
                   }}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-semibold"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-semibold"
                 >
                   {teachers.map((t) => (
                     <option key={t.id} value={t.namaLengkap}>
@@ -1879,29 +2301,40 @@ export const MasterSetupStepsView: React.FC<MasterSetupStepsViewProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">NIP Wali Kelas</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">NIP Wali Kelas</label>
                   <input
                     type="text"
                     required
                     value={editingSchoolClass.nipWaliKelas}
                     onChange={(e) => setEditingSchoolClass({ ...editingSchoolClass, nipWaliKelas: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Kapasitas</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-200 mb-1">Kapasitas</label>
                   <input
                     type="number"
                     required
                     value={editingSchoolClass.kapasitas}
                     onChange={(e) => setEditingSchoolClass({ ...editingSchoolClass, kapasitas: parseInt(e.target.value) || 36 })}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 font-mono"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 font-mono"
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => setEditingSchoolClass(null)} className="px-4 py-2 rounded-lg border">Batal</button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold">Simpan Perubahan</button>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingSchoolClass(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
               </div>
             </form>
           </div>

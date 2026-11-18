@@ -292,6 +292,10 @@ export type UIThemePreset =
   | 'ruby-maroon' 
   | 'obsidian-dark';
 
+export type UIColorMode = 'light' | 'dark';
+
+export type UIAccentColor = 'royal' | 'emerald' | 'teal' | 'indigo' | 'slate';
+
 export interface CoverCustomText {
   namaDinas: string;
   judulDokumen: string;

@@ -389,30 +389,113 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-              FASE 2
-            </span>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Data Master Buku Induk Siswa (Bagian A - F)
-            </h2>
+    <div className="space-y-4">
+      {/* Enterprise Toolbar: Search, Filters & Action Buttons */}
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          {/* Search & Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari Nama, NIS, atau NISN..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none"
+            >
+              <option value="ALL">Semua Kelas</option>
+              {classesList.map((cls) => (
+                <option key={cls} value={cls}>Kelas {cls}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedMajor}
+              onChange={(e) => setSelectedMajor(e.target.value)}
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none"
+            >
+              <option value="ALL">Semua Jurusan</option>
+              {majorsList.map((m) => (
+                <option key={m.kode} value={m.kode}>{m.kode} ({m.nama})</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="Aktif">Aktif</option>
+              <option value="Lulus">Lulus / Alumni</option>
+              <option value="Pindah">Pindah Sekolah</option>
+            </select>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Standar format dokumen resmi Buku Induk Siswa SMA Kemendikbudristek RI
-          </p>
+
+          {/* Primary Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {students.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setDeleteConfirmModal({
+                    isOpen: true,
+                    ids: students.map((s) => s.id),
+                    names: students.map((s) => `${s.personal.namaLengkap} (NIS: ${s.personal.nis})`),
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-600 hover:text-white transition-colors shadow-xs cursor-pointer"
+                title="Kosongkan Seluruh Data Siswa"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Kosongkan Siswa ({students.length})</span>
+              </button>
+            )}
+
+            {onOpenImportModal && (
+              <button
+                onClick={onOpenImportModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-colors cursor-pointer"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Impor Excel / ZIP</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => onExportExcel()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs cursor-pointer"
+              title="Ekspor Seluruh Siswa ke Format Excel .xlsx"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Ekspor Excel</span>
+            </button>
+
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Tambah Siswa</span>
+            </button>
+          </div>
         </div>
 
-        {/* Primary Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedStudentIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 p-1.5 rounded-xl border border-amber-300 dark:border-amber-800 shadow-xs">
-              <span className="text-xs font-bold text-amber-900 dark:text-amber-300 px-2">
-                {selectedStudentIds.length} Siswa Terpilih
-              </span>
+        {/* Bulk Action Bar */}
+        {selectedStudentIds.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-blue-50/70 dark:bg-blue-950/40 px-3 py-2 rounded-md border border-blue-200 dark:border-blue-900/60">
+            <span className="text-xs font-semibold text-blue-900 dark:text-blue-200">
+              {selectedStudentIds.length} Siswa Terpilih
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => {
@@ -421,156 +504,71 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
                   }
                   setBulkClassModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors cursor-pointer"
-                title="Ubah Kelas, Jurusan, dan Tahun Ajaran untuk semua siswa terpilih"
+                className="accent-btn-primary inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md text-white transition-colors cursor-pointer"
               >
                 <Users className="h-3.5 w-3.5" />
                 <span>Ubah Kelas Massal</span>
               </button>
               <button
                 type="button"
-                onClick={handleOpenBulkDelete}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-500 transition-colors cursor-pointer"
-                title="Hapus semua siswa terpilih"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>Hapus Terpilih</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => onTriggerBulkPrint(selectedStudentIds)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
               >
                 <Printer className="h-3.5 w-3.5" />
-                <span>Cetak PDF Batch</span>
+                <span>Cetak PDF Terpilih</span>
               </button>
               <button
                 type="button"
                 onClick={() => onExportExcel(selectedStudentIds)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
               >
                 <FileSpreadsheet className="h-3.5 w-3.5" />
                 <span>Ekspor Excel</span>
               </button>
+              <button
+                type="button"
+                onClick={handleOpenBulkDelete}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-colors cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Hapus Terpilih ({selectedStudentIds.length})</span>
+              </button>
             </div>
-          )}
-
-          {onOpenImportModal && (
-            <button
-              onClick={onOpenImportModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm transition-colors"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              <span>⚡ Impor Excel & ZIP Foto</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => onExportExcel()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shadow-sm cursor-pointer"
-            title="Ekspor Seluruh Siswa ke Format Excel .xlsx"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-            <span>Ekspor Excel (.xlsx)</span>
-          </button>
-
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors shadow-sm"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>+ Tambah Siswa Baru</span>
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="relative sm:col-span-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari Nama, NIS, atau NISN..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:border-amber-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Kelas:</span>
-          <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-amber-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          >
-            <option value="ALL">Semua Kelas</option>
-            {classesList.map((cls) => (
-              <option key={cls} value={cls}>Kelas {cls}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Jurusan:</span>
-          <select
-            value={selectedMajor}
-            onChange={(e) => setSelectedMajor(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-amber-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          >
-            <option value="ALL">Semua Jurusan</option>
-            {majorsList.map((m) => (
-              <option key={m.kode} value={m.kode}>{m.kode} ({m.nama})</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Status:</span>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-amber-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          >
-            <option value="ALL">Semua Status</option>
-            <option value="Aktif">Aktif</option>
-            <option value="Lulus">Lulus / Alumni</option>
-            <option value="Pindah">Pindah Sekolah</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Student Master Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {/* Student Master Enterprise Table */}
+      <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-200 bg-slate-50/80 text-slate-600 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-400">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-xs font-semibold uppercase text-slate-700 dark:text-slate-300">
               <tr>
                 <th className="py-3 px-3 w-10 text-center">
                   <button
                     onClick={handleSelectAll}
-                    className="text-slate-500 hover:text-slate-700"
+                    className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                     title="Pilih Semua"
                   >
                     {selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0 ? (
-                      <CheckSquare className="h-4 w-4 text-amber-600" />
+                      <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     ) : (
                       <Square className="h-4 w-4" />
                     )}
                   </button>
                 </th>
-                <th className="py-3 px-4 font-semibold">Foto & Identitas Siswa</th>
-                <th className="py-3 px-4 font-semibold">NIS / NISN</th>
-                <th className="py-3 px-4 font-semibold">Kelas & Peminatan</th>
-                <th className="py-3 px-4 font-semibold">TTL & Asal Sekolah</th>
-                <th className="py-3 px-4 font-semibold">Status Siswa</th>
-                <th className="py-3 px-4 text-center font-semibold">Aksi Filament</th>
+                <th className="py-3 px-4">Foto & Identitas Siswa</th>
+                <th className="py-3 px-4">NIS / NISN</th>
+                <th className="py-3 px-4">Kelas & Jurusan</th>
+                <th className="py-3 px-4">TTL & Asal Sekolah</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-500 dark:text-slate-400 text-xs">
                     Tidak ditemukan data siswa yang cocok dengan filter.
                   </td>
                 </tr>
@@ -580,23 +578,23 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
                   return (
                     <tr
                       key={student.id}
-                      className={`hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors ${
-                        isChecked ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
+                        isChecked ? 'bg-blue-50/40 dark:bg-blue-950/30' : ''
                       }`}
                     >
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-2.5 px-3 text-center">
                         <button
                           onClick={() => handleToggleSelect(student.id)}
-                          className="text-slate-400 hover:text-slate-600"
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                         >
                           {isChecked ? (
-                            <CheckSquare className="h-4 w-4 text-amber-600" />
+                            <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           ) : (
                             <Square className="h-4 w-4" />
                           )}
                         </button>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="flex items-center gap-3">
                           <StudentAvatar
                             fotoUrl={student.personal.fotoUrl}
@@ -604,86 +602,88 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
                             size="md"
                           />
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-white">
+                            <div className="font-semibold text-slate-900 dark:text-white">
                               {student.personal.namaLengkap}
                             </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                              <span>Panggilan: {student.personal.namaPanggilan || '-'}</span>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <span>{student.personal.namaPanggilan || '-'}</span>
                               <span>·</span>
-                              <span className={student.personal.jenisKelamin === 'L' ? 'text-blue-600 font-semibold' : 'text-pink-600 font-semibold'}>
+                              <span className={student.personal.jenisKelamin === 'L' ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-teal-600 dark:text-teal-400 font-semibold'}>
                                 {student.personal.jenisKelamin === 'L' ? 'Laki-Laki' : 'Perempuan'}
                               </span>
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4 font-mono">
+                      <td className="py-2.5 px-4 font-mono text-xs">
                         <div className="font-semibold text-slate-800 dark:text-slate-200">
                           {student.personal.nis}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-slate-500 dark:text-slate-400">
                           NISN: {student.personal.nisn}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-800 dark:text-slate-200">
-                          {student.previousEducation.diterimaDiKelas}
+                      <td className="py-2.5 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60">
+                            {student.previousEducation.diterimaDiKelas}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                            {student.previousEducation.jurusanPeminatan}
+                          </span>
                         </div>
-                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                          {student.previousEducation.jurusanPeminatan}
-                        </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="text-slate-800 dark:text-slate-200">
+                      <td className="py-2.5 px-4 text-xs">
+                        <div className="text-slate-800 dark:text-slate-200 font-medium">
                           {student.personal.tempatLahir}, {student.personal.tanggalLahir}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-slate-500 dark:text-slate-400">
                           Asal: {student.previousEducation.asalSekolah}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-4">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase ${
                             student.departure.status === 'Aktif'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
                               : student.departure.status === 'Lulus'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                              ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
+                              : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
                           }`}
                         >
                           {student.departure.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => {
                               setViewingStudent(student);
                               setActiveTab('A');
                             }}
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
-                            title="Buka Lembar Buku Induk Lengkap"
+                            className="p-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            title="Lihat Detail Buku Induk"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => openEditModal(student)}
-                            className="p-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 transition-colors"
-                            title="Edit Data Siswa (Semua Bagian)"
+                            className="p-1.5 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                            title="Edit Data Siswa"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => onTriggerSinglePrint(student)}
-                            className="p-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 transition-colors"
-                            title="Cetak Buku Induk PDF Siswa Ini"
+                            className="p-1.5 rounded-md border border-emerald-300 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer"
+                            title="Cetak Buku Induk PDF"
                           >
                             <Printer className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => handleDelete(student.id, student.personal.namaLengkap)}
-                            className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400 transition-colors"
-                            title="Hapus / Soft Delete Siswa"
+                            className="p-1.5 rounded-md border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
+                            title="Hapus Data Siswa"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -703,16 +703,16 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+            <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500 font-bold text-slate-950">
+                <div className="accent-btn-primary flex h-10 w-10 items-center justify-center rounded-lg font-bold text-white text-xs">
                   {isCreatingNew ? '+' : 'EDIT'}
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     {isCreatingNew ? 'Form Tambah Buku Induk Siswa Baru' : `Edit Buku Induk: ${formData.personal.namaLengkap}`}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Sesuai Standar Format Formulir Buku Induk Siswa SMA Depdikbud RI
                   </p>
                 </div>
@@ -730,16 +730,16 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
             </div>
 
             {/* Form Tabs Navigation */}
-            <div className="flex border-b border-slate-200 bg-slate-100/60 px-4 dark:border-slate-800 dark:bg-slate-800/60 overflow-x-auto">
+            <div className="flex border-b border-slate-200 bg-slate-100/80 px-4 dark:border-slate-800 dark:bg-slate-800/80 overflow-x-auto">
               {(['A', 'B', 'C', 'D', 'E', 'F'] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`py-2.5 px-3.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  className={`py-2.5 px-3.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                     activeTab === tab
-                      ? 'border-amber-500 text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900'
-                      : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
                   }`}
                 >
                   Bagian {tab} {tab === 'A' ? '(Pribadi)' : tab === 'B' ? '(Jasmani)' : tab === 'C' ? '(Pendidikan SMP)' : tab === 'D' ? '(Orang Tua)' : tab === 'E' ? '(Wali)' : '(Lulus/Pindah)'}
@@ -1715,13 +1715,13 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
                     setIsCreatingNew(false);
                     setEditingStudent(null);
                   }}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
                 >
                   <Save className="h-3.5 w-3.5" />
                   <span>Simpan ke Database</span>
@@ -1737,16 +1737,16 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+            <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500 font-bold text-slate-950">
+                <div className="accent-btn-primary flex h-10 w-10 items-center justify-center rounded-lg font-bold text-white text-xs">
                   BI
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Buku Induk Siswa: {viewingStudent.personal.namaLengkap}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     NIS: {viewingStudent.personal.nis} · NISN: {viewingStudent.personal.nisn} · Kelas {viewingStudent.previousEducation.diterimaDiKelas}
                   </p>
                 </div>
@@ -1760,15 +1760,15 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
             </div>
 
             {/* Navigation */}
-            <div className="flex border-b border-slate-200 bg-slate-100/60 px-4 dark:border-slate-800 dark:bg-slate-800/60 overflow-x-auto">
+            <div className="flex border-b border-slate-200 bg-slate-100/80 px-4 dark:border-slate-800 dark:bg-slate-800/80 overflow-x-auto">
               {(['A', 'B', 'C', 'D', 'E', 'F'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-3 px-3.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  className={`py-3 px-3.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                     activeTab === tab
-                      ? 'border-amber-500 text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900'
-                      : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                      ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
                   }`}
                 >
                   Bagian {tab} {tab === 'A' ? '(Pribadi)' : tab === 'B' ? '(Jasmani)' : tab === 'C' ? '(Pendidikan SMP)' : tab === 'D' ? '(Orang Tua)' : tab === 'E' ? '(Wali)' : '(Lulus/Pindah)'}
@@ -1830,17 +1830,17 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
 
               {activeTab === 'B' && (
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <span className="text-slate-400 block text-[10px]">Berat Badan</span>
-                    <strong className="text-xl">{viewingStudent.physical.beratBadanKg} kg</strong>
+                  <div className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg">
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Berat Badan</span>
+                    <strong className="text-xl text-slate-900 dark:text-white">{viewingStudent.physical.beratBadanKg} kg</strong>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <span className="text-slate-400 block text-[10px]">Tinggi Badan</span>
-                    <strong className="text-xl">{viewingStudent.physical.tinggiBadanCm} cm</strong>
+                  <div className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg">
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Tinggi Badan</span>
+                    <strong className="text-xl text-slate-900 dark:text-white">{viewingStudent.physical.tinggiBadanCm} cm</strong>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <span className="text-slate-400 block text-[10px]">Golongan Darah</span>
-                    <strong className="text-xl text-amber-600">Golongan {viewingStudent.physical.golonganDarah}</strong>
+                  <div className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg">
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Golongan Darah</span>
+                    <strong className="text-xl text-blue-600 dark:text-blue-400">Golongan {viewingStudent.physical.golonganDarah}</strong>
                   </div>
                 </div>
               )}
@@ -1856,15 +1856,15 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
 
               {activeTab === 'D' && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 border rounded-lg">
-                    <h5 className="font-bold text-blue-600 mb-2">Ayah Kandung:</h5>
+                  <div className="p-3 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg">
+                    <h5 className="font-bold text-blue-600 dark:text-blue-400 mb-2">Ayah Kandung:</h5>
                     <p>Nama: <strong>{viewingStudent.ayah.nama}</strong></p>
                     <p>Pekerjaan: {viewingStudent.ayah.pekerjaan}</p>
                     <p>Penghasilan: {viewingStudent.ayah.penghasilanBulanan}</p>
                     <p>No. HP: {viewingStudent.ayah.nomorHp}</p>
                   </div>
-                  <div className="p-3 border rounded-lg">
-                    <h5 className="font-bold text-pink-600 mb-2">Ibu Kandung:</h5>
+                  <div className="p-3 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg">
+                    <h5 className="font-bold text-teal-600 dark:text-teal-400 mb-2">Ibu Kandung:</h5>
                     <p>Nama: <strong>{viewingStudent.ibu.nama}</strong></p>
                     <p>Pekerjaan: {viewingStudent.ibu.pekerjaan}</p>
                     <p>Penghasilan: {viewingStudent.ibu.penghasilanBulanan}</p>
@@ -1876,13 +1876,13 @@ export const StudentBookMasterView: React.FC<StudentBookMasterViewProps> = ({
               {activeTab === 'E' && (
                 <div>
                   {viewingStudent.wali.adaWali ? (
-                    <div className="p-4 border rounded-lg">
+                    <div className="p-4 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg">
                       <p>Nama Wali: <strong>{viewingStudent.wali.nama}</strong></p>
                       <p>Hubungan: {viewingStudent.wali.hubunganKeluarga}</p>
                       <p>Pekerjaan: {viewingStudent.wali.pekerjaan}</p>
                     </div>
                   ) : (
-                    <p className="text-slate-400 italic">Tinggal langsung dengan orang tua kandung (tidak ada wali).</p>
+                    <p className="text-slate-500 dark:text-slate-400 italic">Tinggal langsung dengan orang tua kandung (tidak ada wali).</p>
                   )}
                 </div>
               )}

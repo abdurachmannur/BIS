@@ -1,225 +1,23 @@
 @import "tailwindcss";
-
-@layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  code, pre, .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-variant-numeric: tabular-nums;
-  }
-
-  table, td, th, input[type="number"] {
-    font-variant-numeric: tabular-nums;
-  }
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ==========================================================================
-   6 DYNAMIC UI DESIGN SYSTEMS ENGINE
-   1. linear-notion (Default - Linear & Notion Workspace)
-   2. shadcn-slate (Shadcn UI Clean Minimalist)
-   3. sapphire-modern (Academic Institutional Navy / Kemendikbud Modern)
-   4. emerald-kedinasan (Hijau Resmi Dinas Pendidikan)
-   5. filament-amber (Filament v3 Classic Amber)
-   6. obsidian-dark (Obsidian Dark Pro)
+   SISTEM TEMA & 5 AKSEN WARNA KORPORAT (LIGHT / DARK + MULTI-ACCENT)
+   1. royal   : Royal Blue (#2563eb) - Default Ant Design Pro
+   2. emerald : Emerald Green (#059669) - Hijau Akademik
+   3. teal    : Teal Ocean (#0d9488) - Biru Kehijauan Modern
+   4. indigo  : Indigo Executive (#4f46e5) - Indigo Korporat
+   5. slate   : Slate Monochrome (#334155) - Abu-abu Eksekutif
    ========================================================================== */
 
-/* 1. Linear & Notion Workspace (DEFAULT) */
-html[data-theme="linear-notion"] {
-  --color-amber-50: #eef2ff !important;
-  --color-amber-100: #e0e7ff !important;
-  --color-amber-200: #c7d2fe !important;
-  --color-amber-300: #a5b4fc !important;
-  --color-amber-400: #818cf8 !important;
-  --color-amber-500: #4f46e5 !important;
-  --color-amber-600: #4338ca !important;
-  --color-amber-700: #3730a3 !important;
-  --color-amber-800: #312e81 !important;
-  --color-amber-900: #1e1b4b !important;
-  --color-amber-950: #0f0d26 !important;
-}
+:root,
+[data-accent="royal"] {
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft-bg: #eff6ff;
+  --accent-soft-text: #1d4ed8;
+  --accent-border: #bfdbfe;
 
-html[data-theme="linear-notion"] .bg-amber-500 {
-  background-color: #4f46e5 !important;
-  color: #ffffff !important;
-}
-html[data-theme="linear-notion"] .bg-amber-500:hover,
-html[data-theme="linear-notion"] .hover\:bg-amber-400:hover {
-  background-color: #4338ca !important;
-  color: #ffffff !important;
-}
-html[data-theme="linear-notion"] .bg-amber-50,
-html[data-theme="linear-notion"] .bg-amber-50\/60,
-html[data-theme="linear-notion"] .bg-amber-50\/40,
-html[data-theme="linear-notion"] .bg-amber-50\/30 {
-  background-color: #eef2ff !important;
-}
-html[data-theme="linear-notion"] .bg-amber-100 {
-  background-color: #e0e7ff !important;
-}
-html[data-theme="linear-notion"] .text-amber-300,
-html[data-theme="linear-notion"] .text-amber-400 {
-  color: #6366f1 !important;
-}
-html[data-theme="linear-notion"] .text-amber-500,
-html[data-theme="linear-notion"] .text-amber-600 {
-  color: #4f46e5 !important;
-}
-html[data-theme="linear-notion"] .text-amber-700,
-html[data-theme="linear-notion"] .text-amber-800,
-html[data-theme="linear-notion"] .text-amber-900 {
-  color: #3730a3 !important;
-}
-html[data-theme="linear-notion"] .border-amber-200,
-html[data-theme="linear-notion"] .border-amber-300 {
-  border-color: #c7d2fe !important;
-}
-html[data-theme="linear-notion"] .border-amber-500 {
-  border-color: #4f46e5 !important;
-}
-/* Notion / Linear Light-Toned Ultra-Clean Sidebar */
-html[data-theme="linear-notion"] aside {
-  background-color: #f7f7f5 !important;
-  border-color: #e4e4e7 !important;
-  color: #18181b !important;
-}
-html[data-theme="linear-notion"] aside .text-white,
-html[data-theme="linear-notion"] aside .text-slate-100,
-html[data-theme="linear-notion"] aside .text-slate-200 {
-  color: #18181b !important;
-}
-html[data-theme="linear-notion"] aside .text-slate-300,
-html[data-theme="linear-notion"] aside .text-slate-400,
-html[data-theme="linear-notion"] aside .text-slate-500 {
-  color: #52525b !important;
-}
-html[data-theme="linear-notion"] aside .border-slate-800,
-html[data-theme="linear-notion"] aside .border-slate-700 {
-  border-color: #e4e4e7 !important;
-}
-html[data-theme="linear-notion"] aside .bg-slate-800,
-html[data-theme="linear-notion"] aside .bg-slate-800\/50,
-html[data-theme="linear-notion"] aside .bg-slate-800\/70 {
-  background-color: #ffffff !important;
-  border-color: #e4e4e7 !important;
-  color: #18181b !important;
-}
-html[data-theme="linear-notion"] aside .bg-slate-950\/80,
-html[data-theme="linear-notion"] aside .bg-slate-900 {
-  background-color: #f0f0ee !important;
-}
-html[data-theme="linear-notion"] aside select {
-  background-color: #ffffff !important;
-  color: #18181b !important;
-  border-color: #d4d4d8 !important;
-}
-html[data-theme="linear-notion"] header {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(8px);
-  border-bottom-color: #e4e4e7 !important;
-}
-html[data-theme="linear-notion"] .theme-app-shell {
-  background-color: #fafafa !important;
-}
-
-/* 2. Shadcn UI Clean Minimalist (Zinc / Monochrome High-Contrast) */
-html[data-theme="shadcn-slate"] {
-  --color-amber-50: #f4f4f5 !important;
-  --color-amber-100: #e4e4e7 !important;
-  --color-amber-200: #d4d4d8 !important;
-  --color-amber-300: #a1a1aa !important;
-  --color-amber-400: #71717a !important;
-  --color-amber-500: #18181b !important;
-  --color-amber-600: #27272a !important;
-  --color-amber-700: #3f3f46 !important;
-  --color-amber-800: #18181b !important;
-  --color-amber-900: #09090b !important;
-  --color-amber-950: #09090b !important;
-}
-
-html[data-theme="shadcn-slate"] .bg-amber-500 {
-  background-color: #18181b !important;
-  color: #fafafa !important;
-}
-html[data-theme="shadcn-slate"] .bg-amber-500:hover,
-html[data-theme="shadcn-slate"] .hover\:bg-amber-400:hover {
-  background-color: #27272a !important;
-  color: #ffffff !important;
-}
-html[data-theme="shadcn-slate"] .bg-amber-50,
-html[data-theme="shadcn-slate"] .bg-amber-50\/60,
-html[data-theme="shadcn-slate"] .bg-amber-50\/40,
-html[data-theme="shadcn-slate"] .bg-amber-50\/30 {
-  background-color: #f4f4f5 !important;
-}
-html[data-theme="shadcn-slate"] .bg-amber-100 {
-  background-color: #e4e4e7 !important;
-}
-html[data-theme="shadcn-slate"] .text-amber-300,
-html[data-theme="shadcn-slate"] .text-amber-400 {
-  color: #52525b !important;
-}
-html[data-theme="shadcn-slate"] .text-amber-500,
-html[data-theme="shadcn-slate"] .text-amber-600,
-html[data-theme="shadcn-slate"] .text-amber-700,
-html[data-theme="shadcn-slate"] .text-amber-800,
-html[data-theme="shadcn-slate"] .text-amber-900 {
-  color: #18181b !important;
-}
-html[data-theme="shadcn-slate"] .border-amber-200,
-html[data-theme="shadcn-slate"] .border-amber-300 {
-  border-color: #d4d4d8 !important;
-}
-html[data-theme="shadcn-slate"] .border-amber-500 {
-  border-color: #18181b !important;
-}
-html[data-theme="shadcn-slate"] aside {
-  background-color: #ffffff !important;
-  border-color: #e4e4e7 !important;
-  color: #09090b !important;
-}
-html[data-theme="shadcn-slate"] aside .text-white,
-html[data-theme="shadcn-slate"] aside .text-slate-100,
-html[data-theme="shadcn-slate"] aside .text-slate-200 {
-  color: #09090b !important;
-}
-html[data-theme="shadcn-slate"] aside .text-slate-300,
-html[data-theme="shadcn-slate"] aside .text-slate-400,
-html[data-theme="shadcn-slate"] aside .text-slate-500 {
-  color: #71717a !important;
-}
-html[data-theme="shadcn-slate"] aside .border-slate-800,
-html[data-theme="shadcn-slate"] aside .border-slate-700 {
-  border-color: #e4e4e7 !important;
-}
-html[data-theme="shadcn-slate"] aside .bg-slate-800,
-html[data-theme="shadcn-slate"] aside .bg-slate-800\/50,
-html[data-theme="shadcn-slate"] aside .bg-slate-800\/70 {
-  background-color: #f4f4f5 !important;
-  border-color: #e4e4e7 !important;
-  color: #09090b !important;
-}
-html[data-theme="shadcn-slate"] aside .bg-slate-950\/80 {
-  background-color: #fafafa !important;
-}
-html[data-theme="shadcn-slate"] aside select {
-  background-color: #ffffff !important;
-  color: #09090b !important;
-  border-color: #e4e4e7 !important;
-}
-html[data-theme="shadcn-slate"] header {
-  background-color: #ffffff !important;
-  border-bottom-color: #e4e4e7 !important;
-}
-html[data-theme="shadcn-slate"] .theme-app-shell {
-  background-color: #ffffff !important;
-}
-
-/* 3. Academic Institutional Navy (Biru Safir Pendidikan / Kemendikbud Modern) */
-html[data-theme="sapphire-modern"] {
   --color-amber-50: #eff6ff !important;
   --color-amber-100: #dbeafe !important;
   --color-amber-200: #bfdbfe !important;
@@ -233,65 +31,13 @@ html[data-theme="sapphire-modern"] {
   --color-amber-950: #172554 !important;
 }
 
-html[data-theme="sapphire-modern"] .bg-amber-500 {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-}
-html[data-theme="sapphire-modern"] .bg-amber-500:hover,
-html[data-theme="sapphire-modern"] .hover\:bg-amber-400:hover {
-  background-color: #1d4ed8 !important;
-  color: #ffffff !important;
-}
-html[data-theme="sapphire-modern"] .bg-amber-50,
-html[data-theme="sapphire-modern"] .bg-amber-50\/60,
-html[data-theme="sapphire-modern"] .bg-amber-50\/40,
-html[data-theme="sapphire-modern"] .bg-amber-50\/30 {
-  background-color: #eff6ff !important;
-}
-html[data-theme="sapphire-modern"] .bg-amber-100 {
-  background-color: #dbeafe !important;
-}
-html[data-theme="sapphire-modern"] .text-amber-300,
-html[data-theme="sapphire-modern"] .text-amber-400 {
-  color: #60a5fa !important;
-}
-html[data-theme="sapphire-modern"] .text-amber-500,
-html[data-theme="sapphire-modern"] .text-amber-600 {
-  color: #2563eb !important;
-}
-html[data-theme="sapphire-modern"] .text-amber-700,
-html[data-theme="sapphire-modern"] .text-amber-800,
-html[data-theme="sapphire-modern"] .text-amber-900 {
-  color: #1e40af !important;
-}
-html[data-theme="sapphire-modern"] .border-amber-200,
-html[data-theme="sapphire-modern"] .border-amber-300 {
-  border-color: #93c5fd !important;
-}
-html[data-theme="sapphire-modern"] .border-amber-500 {
-  border-color: #2563eb !important;
-}
-html[data-theme="sapphire-modern"] aside {
-  background-color: #172554 !important;
-  border-color: #1e3a8a !important;
-}
-html[data-theme="sapphire-modern"] aside .bg-slate-800 {
-  background-color: #1e3a8a !important;
-  border-color: #1d4ed8 !important;
-}
-html[data-theme="sapphire-modern"] aside .bg-slate-950\/80 {
-  background-color: #0f172a !important;
-}
-html[data-theme="sapphire-modern"] header {
-  border-bottom-color: #bfdbfe !important;
-  background-color: #ffffff !important;
-}
-html[data-theme="sapphire-modern"] .theme-app-shell {
-  background-color: #f8fafc !important;
-}
+[data-accent="emerald"] {
+  --accent-primary: #059669;
+  --accent-hover: #047857;
+  --accent-soft-bg: #ecfdf5;
+  --accent-soft-text: #047857;
+  --accent-border: #a7f3d0;
 
-/* 4. Emerald Kedinasan (Hijau Resmi Dinas Pendidikan) */
-html[data-theme="emerald-kedinasan"] {
   --color-amber-50: #ecfdf5 !important;
   --color-amber-100: #d1fae5 !important;
   --color-amber-200: #a7f3d0 !important;
@@ -305,136 +51,150 @@ html[data-theme="emerald-kedinasan"] {
   --color-amber-950: #022c22 !important;
 }
 
-html[data-theme="emerald-kedinasan"] .bg-amber-500 {
-  background-color: #059669 !important;
+[data-accent="teal"] {
+  --accent-primary: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-soft-bg: #f0fdfa;
+  --accent-soft-text: #0f766e;
+  --accent-border: #99f6e4;
+
+  --color-amber-50: #f0fdfa !important;
+  --color-amber-100: #ccfbf1 !important;
+  --color-amber-200: #99f6e4 !important;
+  --color-amber-300: #5eead4 !important;
+  --color-amber-400: #2dd4bf !important;
+  --color-amber-500: #0d9488 !important;
+  --color-amber-600: #0f766e !important;
+  --color-amber-700: #115e59 !important;
+  --color-amber-800: #134e4a !important;
+  --color-amber-900: #134e4a !important;
+  --color-amber-950: #042f2e !important;
+}
+
+[data-accent="indigo"] {
+  --accent-primary: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-soft-bg: #eef2ff;
+  --accent-soft-text: #4338ca;
+  --accent-border: #c7d2fe;
+
+  --color-amber-50: #eef2ff !important;
+  --color-amber-100: #e0e7ff !important;
+  --color-amber-200: #c7d2fe !important;
+  --color-amber-300: #a5b4fc !important;
+  --color-amber-400: #818cf8 !important;
+  --color-amber-500: #4f46e5 !important;
+  --color-amber-600: #4338ca !important;
+  --color-amber-700: #3730a3 !important;
+  --color-amber-800: #312e81 !important;
+  --color-amber-900: #312e81 !important;
+  --color-amber-950: #1e1b4b !important;
+}
+
+[data-accent="slate"] {
+  --accent-primary: #334155;
+  --accent-hover: #1e293b;
+  --accent-soft-bg: #f1f5f9;
+  --accent-soft-text: #1e293b;
+  --accent-border: #cbd5e1;
+
+  --color-amber-50: #f8fafc !important;
+  --color-amber-100: #f1f5f9 !important;
+  --color-amber-200: #e2e8f0 !important;
+  --color-amber-300: #cbd5e1 !important;
+  --color-amber-400: #94a3b8 !important;
+  --color-amber-500: #334155 !important;
+  --color-amber-600: #1e293b !important;
+  --color-amber-700: #0f172a !important;
+  --color-amber-800: #0f172a !important;
+  --color-amber-900: #090d16 !important;
+  --color-amber-950: #020617 !important;
+}
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f0f2f5;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.dark body {
+    background-color: #090d16;
+    color: #f8fafc;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  table, td, th, input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Pastikan seluruh input, select, option, dan textarea selalu kontras dan terbaca jelas */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  select,
+  textarea {
+    color: #0f172a;
+  }
+
+  html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  html.dark select,
+  html.dark textarea {
+    background-color: #0f172a;
+    color: #f8fafc;
+    border-color: #334155;
+  }
+
+  select option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+
+  html.dark select option {
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
+}
+
+/* ==========================================================================
+   KOMPONEN TOMBOL & AKSEN DINAMIS (TERJAMIN KONTRAS TEKS PUTIH DI ATAS AKSEN)
+   ========================================================================== */
+
+.bg-amber-500,
+.accent-btn-primary {
+  background-color: var(--accent-primary) !important;
   color: #ffffff !important;
 }
-html[data-theme="emerald-kedinasan"] .bg-amber-500:hover,
-html[data-theme="emerald-kedinasan"] .hover\:bg-amber-400:hover {
-  background-color: #047857 !important;
+
+.bg-amber-500:hover,
+.hover\:bg-amber-400:hover,
+.accent-btn-primary:hover {
+  background-color: var(--accent-hover) !important;
   color: #ffffff !important;
 }
-html[data-theme="emerald-kedinasan"] .bg-amber-50,
-html[data-theme="emerald-kedinasan"] .bg-amber-50\/60,
-html[data-theme="emerald-kedinasan"] .bg-amber-50\/40,
-html[data-theme="emerald-kedinasan"] .bg-amber-50\/30 {
-  background-color: #ecfdf5 !important;
-}
-html[data-theme="emerald-kedinasan"] .bg-amber-100 {
-  background-color: #d1fae5 !important;
-}
-html[data-theme="emerald-kedinasan"] .text-amber-300,
-html[data-theme="emerald-kedinasan"] .text-amber-400 {
-  color: #34d399 !important;
-}
-html[data-theme="emerald-kedinasan"] .text-amber-500,
-html[data-theme="emerald-kedinasan"] .text-amber-600 {
-  color: #059669 !important;
-}
-html[data-theme="emerald-kedinasan"] .text-amber-700,
-html[data-theme="emerald-kedinasan"] .text-amber-800,
-html[data-theme="emerald-kedinasan"] .text-amber-900 {
-  color: #065f46 !important;
-}
-html[data-theme="emerald-kedinasan"] .border-amber-200,
-html[data-theme="emerald-kedinasan"] .border-amber-300 {
-  border-color: #6ee7b7 !important;
-}
-html[data-theme="emerald-kedinasan"] .border-amber-500 {
-  border-color: #059669 !important;
-}
-html[data-theme="emerald-kedinasan"] aside {
-  background-color: #022c22 !important;
-  border-color: #064e3b !important;
-}
-html[data-theme="emerald-kedinasan"] aside .bg-slate-800 {
-  background-color: #064e3b !important;
-  border-color: #047857 !important;
-}
-html[data-theme="emerald-kedinasan"] aside .bg-slate-950\/80 {
-  background-color: #011f18 !important;
-}
-html[data-theme="emerald-kedinasan"] header {
-  border-bottom-color: #a7f3d0 !important;
-  background-color: #ffffff !important;
-}
-html[data-theme="emerald-kedinasan"] .theme-app-shell {
-  background-color: #f8fafc !important;
+
+.text-amber-500,
+.text-amber-600 {
+  color: var(--accent-primary) !important;
 }
 
-/* 5. Filament Amber (Classic Filament v3) */
-html[data-theme="filament-amber"] {
-  --theme-accent: #f59e0b;
-  --theme-accent-hover: #d97706;
-  --theme-sidebar-bg: #0f172a;
-  --theme-canvas-bg: #f1f5f9;
-}
-
-/* 6. Obsidian Dark (Kontras Maksimal Hitam Obsidian & Indigo/Emas) */
-html[data-theme="obsidian-dark"] {
-  color-scheme: dark;
-  --color-amber-500: #6366f1 !important;
-  --color-amber-600: #4f46e5 !important;
-}
-
-html[data-theme="obsidian-dark"] .theme-app-shell {
-  background-color: #09090b !important;
-  color: #f8fafc !important;
-}
-html[data-theme="obsidian-dark"] header {
-  background-color: #09090b !important;
-  border-bottom-color: #27272a !important;
-  color: #f8fafc !important;
-}
-html[data-theme="obsidian-dark"] aside {
-  background-color: #09090b !important;
-  border-color: #27272a !important;
-}
-html[data-theme="obsidian-dark"] main .bg-white {
-  background-color: #18181b !important;
-  color: #f4f4f5 !important;
-  border-color: #27272a !important;
-}
-html[data-theme="obsidian-dark"] main .bg-slate-50,
-html[data-theme="obsidian-dark"] main .bg-slate-50\/50,
-html[data-theme="obsidian-dark"] main .bg-slate-50\/60,
-html[data-theme="obsidian-dark"] main .bg-slate-100,
-html[data-theme="obsidian-dark"] main .bg-slate-100\/70 {
-  background-color: #27272a !important;
-  color: #e4e4e7 !important;
-}
-html[data-theme="obsidian-dark"] main .text-slate-900,
-html[data-theme="obsidian-dark"] main .text-slate-800,
-html[data-theme="obsidian-dark"] header .text-slate-800,
-html[data-theme="obsidian-dark"] header .text-slate-700 {
-  color: #f8fafc !important;
-}
-html[data-theme="obsidian-dark"] main .text-slate-700,
-html[data-theme="obsidian-dark"] main .text-slate-600,
-html[data-theme="obsidian-dark"] main .text-slate-500 {
-  color: #a1a1aa !important;
-}
-html[data-theme="obsidian-dark"] main .border-slate-200,
-html[data-theme="obsidian-dark"] main .border-slate-300,
-html[data-theme="obsidian-dark"] main .border-slate-100 {
-  border-color: #27272a !important;
-}
-html[data-theme="obsidian-dark"] main input,
-html[data-theme="obsidian-dark"] main select,
-html[data-theme="obsidian-dark"] main textarea {
-  background-color: #27272a !important;
-  color: #f8fafc !important;
-  border-color: #3f3f46 !important;
+html.dark .text-amber-500,
+html.dark .text-amber-600,
+html.dark .text-amber-400 {
+  color: #60a5fa !important;
 }
 
 @layer utilities {
   @media print {
-    /* Hide navigation, sidebar, and buttons */
     header, aside, .no-print, button, nav {
       display: none !important;
     }
 
-    body {
+    body, html.dark body {
       background-color: #ffffff !important;
       color: #000000 !important;
       font-size: 11pt !important;
@@ -463,7 +223,6 @@ html[data-theme="obsidian-dark"] main textarea {
       break-after: avoid;
     }
 
-    /* Keep table borders and backgrounds sharp */
     * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;

@@ -234,33 +234,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
       {
         id: 'nav-profil',
         group: 'Navigasi Modul',
-        title: 'Profil, Identitas Sekolah & Kustomisasi Tema UI',
-        subtitle: 'Pengaturan kop surat, NPSN, logo sekolah, dan tanda tangan Kepala Sekolah',
+        title: 'Pengaturan Sistem (Profil Sekolah, Ubah Password & Update GitHub)',
+        subtitle: 'Pengaturan identitas sekolah, logo, keamanan akun, dan pembaruan sistem',
         icon: <Building2 className="w-4 h-4 text-zinc-500" />,
         action: () => {
           onNavigateNav('pengaturan_profil_sekolah');
-          onClose();
-        }
-      },
-      {
-        id: 'nav-backup',
-        group: 'Navigasi Modul',
-        title: 'Database & Pencadangan Data (JSON / Restore)',
-        subtitle: 'Ekspor cadangan penuh seluruh database lokal atau pulihkan data',
-        icon: <Archive className="w-4 h-4 text-zinc-500" />,
-        action: () => {
-          onNavigateNav('pengaturan_backup');
-          onClose();
-        }
-      },
-      {
-        id: 'nav-blueprint',
-        group: 'Navigasi Modul',
-        title: 'Blueprint Arsitektur & Kode Sumber',
-        subtitle: 'Dokumentasi skema tabel dan referensi kode',
-        icon: <Code2 className="w-4 h-4 text-zinc-500" />,
-        action: () => {
-          onNavigateNav('blueprint_arsitektur');
           onClose();
         }
       }

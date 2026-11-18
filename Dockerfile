@@ -1,7 +1,9 @@
 FROM node:24-bullseye-slim
 
-# Pasang paket build dasar agar kompilasi native addon better-sqlite3 selalu lancar
+# Pasang git, ca-certificates, dan paket kompilasi untuk better-sqlite3 & fitur Update via GitHub
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
     python3 \
     make \
     g++ \
@@ -24,6 +26,7 @@ RUN mkdir -p /app/data
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV APP_VERSION=v1.0.0-beta.1
 
 EXPOSE 3000
 

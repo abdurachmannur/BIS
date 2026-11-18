@@ -3,36 +3,34 @@ import * as XLSX from 'xlsx';
 import { FilamentNavbar } from './components/layout/FilamentNavbar';
 import { FilamentSidebar, ActiveNavKey } from './components/layout/FilamentSidebar';
 import { FilamentLoginView } from './components/auth/FilamentLoginView';
-import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { DashboardOverview } from './components/dashboard/DashboardOverview';
 import { MasterSetupStepsView, MasterStepNumber } from './components/phase1_step1_4/MasterSetupStepsView';
 import { StudentBookMasterView } from './components/phase2/StudentBookMasterView';
 import { AcademicGradeView } from './components/phase3/AcademicGradeView';
 import { AttendanceView } from './components/phase1/AttendanceView';
 import { OfficialPrintPreview } from './components/phase4/OfficialPrintPreview';
-import { PdfExportQueueView } from './components/phase4/PdfExportQueueView';
-import { ExcelImportCenterModal } from './components/import/ExcelImportCenterModal';
+import { ExcelImportCenterModal, GradeImportPayloadItem } from './components/import/ExcelImportCenterModal';
 import { SchoolProfileSettingsView } from './components/settings/SchoolProfileSettingsView';
-import { SettingsAndBackupView } from './components/phase5/SettingsAndBackupView';
-import { CodeBlueprintViewer } from './components/blueprint/CodeBlueprintViewer';
-import { CommandPaletteModal } from './components/navigation/CommandPaletteModal';
-import { 
-  MOCK_STUDENTS, 
-  MOCK_DAILY_ATTENDANCE, 
+import {
+  SettingsAndBackupView,
+  FullAppStoreBackupPayload,
+  ClearableDataKey,
+} from './components/phase5/SettingsAndBackupView';
+import {
+  MOCK_STUDENTS,
+  MOCK_DAILY_ATTENDANCE,
   DEFAULT_SCHOOL_PROFILE,
-  DEFAULT_AUTH_USERS,
   DEFAULT_ACADEMIC_YEARS,
   DEFAULT_TEACHERS,
   DEFAULT_DEPARTMENTS,
   DEFAULT_GRADE_LEVELS,
   DEFAULT_CLASSES,
-  DEFAULT_MASTER_SUBJECTS
+  DEFAULT_MASTER_SUBJECTS,
 } from './data/mock-data';
-import { 
-  StudentFullRecord, 
-  DailyAttendanceRecord, 
-  FilamentNotificationItem, 
-  SchoolProfile, 
+import {
+  StudentFullRecord,
+  DailyAttendanceRecord,
+  SchoolProfile,
   AuthUser,
   AcademicYearRecord,
   TeacherRecord,
@@ -40,9 +38,9 @@ import {
   GradeLevelRecord,
   SchoolClassRecord,
   MasterSubjectRecord,
-  UIThemePreset
+  UIColorMode,
+  UIAccentColor,
 } from './types/buku-induk';
-import { GradeImportPayloadItem } from './components/import/ExcelImportCenterModal';
 
 const STORAGE_KEY_STUDENTS = 'buku_induk_students_v2';
 const STORAGE_KEY_ATTENDANCE = 'buku_induk_attendance_v2';
@@ -55,11 +53,26 @@ const STORAGE_KEY_DEPARTMENTS = 'buku_induk_departments_v2';
 const STORAGE_KEY_GRADE_LEVELS = 'buku_induk_grade_levels_v2';
 const STORAGE_KEY_CLASSES = 'buku_induk_classes_v2';
 const STORAGE_KEY_MASTER_SUBJECTS = 'buku_induk_master_subjects_v2';
-const STORAGE_KEY_THEME = 'buku_induk_ui_theme_v3';
-const STORAGE_KEY_SIDEBAR_COLLAPSED = 'buku_induk_sidebar_collapsed_v1';
+const STORAGE_KEY_COLOR_MODE = 'buku_induk_color_mode_v1';
+const STORAGE_KEY_ACCENT_COLOR = 'buku_induk_accent_color_v1';
+
+const PAGE_TITLES: Record<ActiveNavKey, string> = {
+  dashboard: 'Dashboard Buku Induk Siswa',
+  step5_siswa: 'Data Buku Induk Siswa',
+  step6_nilai: 'Nilai Rapor Semester 1 – 6',
+  step7_kehadiran: 'Presensi Harian Siswa',
+  cetak_dokumen_gabungan: 'Cetak Rapor & Buku Induk PDF',
+  impor_massal_center: 'Impor Excel & ZIP Foto',
+  step1_tahun_ajaran: 'Master Data Tahun Ajaran',
+  step2_guru: 'Master Data Guru & Wali Kelas',
+  step2_jurusan: 'Master Data Jurusan',
+  step3_tingkat: 'Master Data Tingkat Kelas',
+  step4_kelas: 'Master Data Rombongan Belajar (Kelas)',
+  backup_restore_db: 'Backup, Restore & Reset Database',
+  pengaturan_profil_sekolah: 'Pengaturan Sistem & Akun',
+};
 
 export default function App() {
-  // JWT Token stored in localStorage
   const [authToken, setAuthToken] = useState<string | null>(() => {
     try {
       return localStorage.getItem(STORAGE_KEY_TOKEN);
@@ -68,7 +81,6 @@ export default function App() {
     }
   });
 
-  // Current logged in user (null if no JWT token in localStorage)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
       const token = localStorage.getItem(STORAGE_KEY_TOKEN);
@@ -80,64 +92,64 @@ export default function App() {
     return null;
   });
 
+  // UI Theme & Corporate Accent State
+  const [colorMode, setColorMode] = useState<UIColorMode>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_COLOR_MODE);
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {
+      // ignore
+    }
+    return 'light';
+  });
+
+  const [accentColor, setAccentColor] = useState<UIAccentColor>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ACCENT_COLOR);
+      if (
+        saved === 'royal' ||
+        saved === 'emerald' ||
+        saved === 'teal' ||
+        saved === 'indigo' ||
+        saved === 'slate'
+      ) {
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    return 'royal';
+  });
+
+  // Sync colorMode (.dark class on <html>) and accentColor (data-accent on <html>)
+  useEffect(() => {
+    const root = document.documentElement;
+    if (colorMode === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY_COLOR_MODE, colorMode);
+    } catch {
+      // ignore
+    }
+  }, [colorMode]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-accent', accentColor);
+    try {
+      localStorage.setItem(STORAGE_KEY_ACCENT_COLOR, accentColor);
+    } catch {
+      // ignore
+    }
+  }, [accentColor]);
+
   const [activeNav, setActiveNav] = useState<ActiveNavKey>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY_SIDEBAR_COLLAPSED) === 'true';
-    } catch {
-      return false;
-    }
-  });
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('saved');
   const [isHydratedFromServer, setIsHydratedFromServer] = useState<boolean>(false);
-
-  const handleToggleSidebarCollapse = () => {
-    setIsSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(STORAGE_KEY_SIDEBAR_COLLAPSED, String(next));
-      return next;
-    });
-  };
-
-  // Global Ctrl+K / Cmd+K Shortcut for Command Palette
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
-
-  // Multi-UI Design Systems State (Default: linear-notion)
-  const [currentTheme, setCurrentTheme] = useState<UIThemePreset>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_THEME) as UIThemePreset;
-      if (saved) return saved;
-    } catch (e) {
-      console.error(e);
-    }
-    return 'linear-notion';
-  });
-
-  const handleSelectTheme = (theme: UIThemePreset) => {
-    setCurrentTheme(theme);
-    localStorage.setItem(STORAGE_KEY_THEME, theme);
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.classList.toggle('dark', theme === 'obsidian-dark');
-    showToast('Gaya UI Diperbarui', `Tampilan aktif: ${theme.replace('-', ' ').toUpperCase()}`, 'info');
-  };
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    document.documentElement.classList.toggle('dark', currentTheme === 'obsidian-dark');
-  }, [currentTheme]);
 
   // Persistent School Profile State
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(() => {
@@ -211,7 +223,7 @@ export default function App() {
     return DEFAULT_MASTER_SUBJECTS;
   });
 
-  // Students & Attendance Records (Steps 6 & 8)
+  // Students & Attendance Records
   const [students, setStudents] = useState<StudentFullRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_STUDENTS);
@@ -236,26 +248,6 @@ export default function App() {
   const [previewStudentId, setPreviewStudentId] = useState<string | undefined>(MOCK_STUDENTS[0]?.id);
   const [batchPrintStudentIds, setBatchPrintStudentIds] = useState<string[]>([]);
 
-  // Filament Live Database Notifications
-  const [notifications, setNotifications] = useState<FilamentNotificationItem[]>([
-    {
-      id: 'notif-1',
-      title: 'Database Terinisialisasi',
-      body: 'Struktur Buku Induk SMA Kurikulum Merdeka aktif.',
-      type: 'success',
-      createdAt: '10 menit lalu',
-      isRead: false,
-    },
-    {
-      id: 'notif-2',
-      title: 'Sinkronisasi Sekolah',
-      body: `Profil ${schoolProfile.namaSekolah} siap digunakan untuk cetak dokumen resmi.`,
-      type: 'info',
-      createdAt: 'Baru saja',
-      isRead: false,
-    },
-  ]);
-
   // Floating Toast Notification state
   const [toast, setToast] = useState<{
     title: string;
@@ -272,6 +264,30 @@ export default function App() {
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   };
+
+  // Load public school profile on initial mount
+  useEffect(() => {
+    let isCancelled = false;
+    async function fetchPublicProfile() {
+      try {
+        const res = await fetch('/api/public/school-profile');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isCancelled && data.schoolProfile) {
+          setSchoolProfile((prev) => ({
+            ...prev,
+            ...data.schoolProfile,
+          }));
+        }
+      } catch {
+        // Ignore network error before server hydration
+      }
+    }
+    fetchPublicProfile();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   // Sync to LocalStorage cache
   useEffect(() => {
@@ -320,7 +336,7 @@ export default function App() {
     }
   }, [currentUser, authToken]);
 
-  // 1. Ambil data awal dari GET /api/data saat user sudah login (memiliki JWT token)
+  // 1. Ambil data awal dari GET /api/data saat user sudah login
   useEffect(() => {
     if (!authToken || !currentUser) {
       setIsHydratedFromServer(false);
@@ -331,7 +347,6 @@ export default function App() {
 
     async function loadFromSQLite() {
       try {
-        setSyncStatus('saving');
         const res = await fetch('/api/data', {
           method: 'GET',
           headers: {
@@ -343,13 +358,13 @@ export default function App() {
           if (!isCancelled) {
             setAuthToken(null);
             setCurrentUser(null);
-            showToast('Sesi Berakhir', 'Silakan login kembali untuk mengakses database SQLite.', 'warning');
+            showToast('Sesi Berakhir', 'Silakan masuk kembali.', 'warning');
           }
           return;
         }
 
         if (!res.ok) {
-          throw new Error('Gagal memuat data dari SQLite');
+          throw new Error('Gagal memuat data');
         }
 
         const result = await res.json();
@@ -358,7 +373,6 @@ export default function App() {
         const serverData = result.data || {};
 
         if (result.isEmpty) {
-          // Database SQLite masih kosong, simpan data awal ke SQLite
           await fetch('/api/data', {
             method: 'POST',
             headers: {
@@ -391,12 +405,10 @@ export default function App() {
           if (Array.isArray(serverData.masterSubjects)) setMasterSubjects(serverData.masterSubjects);
         }
 
-        setSyncStatus('saved');
         setIsHydratedFromServer(true);
       } catch (err) {
         console.error('Gagal memuat GET /api/data:', err);
         if (!isCancelled) {
-          setSyncStatus('error');
           setIsHydratedFromServer(true);
         }
       }
@@ -409,14 +421,13 @@ export default function App() {
     };
   }, [authToken]);
 
-  // 2. Setiap kali ada penambahan/perubahan/penghapusan data, kirim ke POST /api/data (SQLite)
+  // 2. Simpan perubahan ke POST /api/data secara otomatis
   useEffect(() => {
     if (!authToken || !currentUser || !isHydratedFromServer) return;
 
     const timer = setTimeout(async () => {
       try {
-        setSyncStatus('saving');
-        const res = await fetch('/api/data', {
+        await fetch('/api/data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -436,15 +447,8 @@ export default function App() {
             },
           }),
         });
-
-        if (res.ok) {
-          setSyncStatus('saved');
-        } else {
-          setSyncStatus('error');
-        }
       } catch (err) {
         console.error('Gagal menyimpan POST /api/data:', err);
-        setSyncStatus('error');
       }
     }, 250);
 
@@ -463,32 +467,6 @@ export default function App() {
     schoolClasses,
     masterSubjects,
   ]);
-
-  // Notification handlers
-  const handleMarkNotificationAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
-  const handleTriggerJobNotification = (title: string, body: string, downloadUrl?: string) => {
-    const newNotif: FilamentNotificationItem = {
-      id: 'job-' + Date.now(),
-      title,
-      body,
-      type: 'success',
-      createdAt: 'Baru saja',
-      isRead: false,
-      downloadUrl,
-      downloadFilename: `Buku_Induk_Ekspor_${Date.now()}.pdf`,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    showToast(title, body, 'success');
-  };
 
   // Student CRUD Handlers
   const handleAddStudent = (newStudent: StudentFullRecord) => {
@@ -527,7 +505,6 @@ export default function App() {
     );
   };
 
-  // Safe non-destructive unassign when a Master Class is deleted
   const handleUnassignStudentsFromClass = (deletedClass: SchoolClassRecord) => {
     setStudents((prev) =>
       prev.map((s) => {
@@ -549,6 +526,53 @@ export default function App() {
     );
   };
 
+  // Backup, Restore & Selective/Complete Clear Handlers
+  const handleRestoreFullPayload = (payload: FullAppStoreBackupPayload) => {
+    if (Array.isArray(payload.students)) setStudents(payload.students);
+    if (Array.isArray(payload.attendanceRecords)) setAttendanceRecords(payload.attendanceRecords);
+    if (payload.schoolProfile) setSchoolProfile(payload.schoolProfile);
+    if (Array.isArray(payload.academicYears)) setAcademicYears(payload.academicYears);
+    if (Array.isArray(payload.teachers)) setTeachers(payload.teachers);
+    if (Array.isArray(payload.departments)) setDepartments(payload.departments);
+    if (Array.isArray(payload.gradeLevels)) setGradeLevels(payload.gradeLevels);
+    if (Array.isArray(payload.schoolClasses)) setSchoolClasses(payload.schoolClasses);
+    if (Array.isArray(payload.masterSubjects)) setMasterSubjects(payload.masterSubjects);
+  };
+
+  const handleClearSelectedCollections = (keys: ClearableDataKey[]) => {
+    if (keys.includes('academicYears')) setAcademicYears([]);
+    if (keys.includes('teachers')) setTeachers([]);
+    if (keys.includes('departments')) setDepartments([]);
+    if (keys.includes('gradeLevels')) setGradeLevels([]);
+    if (keys.includes('schoolClasses')) setSchoolClasses([]);
+    if (keys.includes('masterSubjects')) setMasterSubjects([]);
+    if (keys.includes('students')) setStudents([]);
+    if (keys.includes('attendanceRecords')) setAttendanceRecords([]);
+  };
+
+  const handleClearAllToZero = () => {
+    setAcademicYears([]);
+    setTeachers([]);
+    setDepartments([]);
+    setGradeLevels([]);
+    setSchoolClasses([]);
+    setMasterSubjects([]);
+    setStudents([]);
+    setAttendanceRecords([]);
+  };
+
+  const handleResetToDefault = () => {
+    setSchoolProfile(DEFAULT_SCHOOL_PROFILE);
+    setAcademicYears(DEFAULT_ACADEMIC_YEARS);
+    setTeachers(DEFAULT_TEACHERS);
+    setDepartments(DEFAULT_DEPARTMENTS);
+    setGradeLevels(DEFAULT_GRADE_LEVELS);
+    setSchoolClasses(DEFAULT_CLASSES);
+    setMasterSubjects(DEFAULT_MASTER_SUBJECTS);
+    setStudents(MOCK_STUDENTS);
+    setAttendanceRecords(MOCK_DAILY_ATTENDANCE);
+  };
+
   const handleSinglePrint = (student: StudentFullRecord) => {
     setPreviewStudentId(student.id);
     setBatchPrintStudentIds([]);
@@ -563,7 +587,7 @@ export default function App() {
     }
   };
 
-  // Authentic Excel (.xlsx) Export with Complete 49 Columns (Bagian A s/d F Matching Print Preview & Re-importable)
+  // Authentic Excel (.xlsx) Export with Complete 49 Columns (Bagian A s/d F)
   const handleExportExcel = (selectedIds?: string[]) => {
     const targetList =
       selectedIds && selectedIds.length > 0
@@ -573,26 +597,19 @@ export default function App() {
     const wb = XLSX.utils.book_new();
 
     const headers = [
-      // Bagian A: Keterangan Pribadi (18 Kolom)
       'NIS', 'NISN', 'Nama_Lengkap', 'Nama_Panggilan', 'Jenis_Kelamin',
       'Tempat_Lahir', 'Tanggal_Lahir_DD_MM_YYYY', 'Agama', 'Kewarganegaraan',
       'Anak_Ke', 'Jumlah_Saudara_Kandung', 'Bahasa_Sehari_Hari',
       'Alamat', 'Kelurahan', 'Kecamatan', 'Kota_Kabupaten', 'Tinggal_Bersama', 'No_HP_Siswa',
-      // Bagian B: Keterangan Jasmani & Kesehatan (4 Kolom)
       'Berat_Badan_Kg', 'Tinggi_Badan_Cm', 'Golongan_Darah', 'Riwayat_Penyakit',
-      // Bagian C: Pendidikan Sebelumnya (6 Kolom)
       'Asal_SMP', 'No_Ijazah_SMP', 'Diterima_Di_Kelas', 'Jurusan_Peminatan', 'Tahun_Ajaran_Masuk', 'Tanggal_Diterima',
-      // Bagian D: Orang Tua Kandung — Ayah & Ibu (14 Kolom)
       'Nama_Ayah', 'Tempat_Lahir_Ayah', 'Tanggal_Lahir_Ayah', 'Pendidikan_Ayah', 'Pekerjaan_Ayah', 'Penghasilan_Ayah', 'No_HP_Ayah',
       'Nama_Ibu', 'Tempat_Lahir_Ibu', 'Tanggal_Lahir_Ibu', 'Pendidikan_Ibu', 'Pekerjaan_Ibu', 'Penghasilan_Ibu', 'No_HP_Ibu',
-      // Bagian E: Wali Siswa (4 Kolom)
       'Nama_Wali', 'Hubungan_Keluarga_Wali', 'Pekerjaan_Wali', 'Penghasilan_Wali',
-      // Bagian F: Kelulusan / Meninggalkan Sekolah (3 Kolom)
-      'Status_Siswa', 'No_Ijazah_SMA', 'Melanjutkan_Ke'
+      'Status_Siswa', 'No_Ijazah_SMA', 'Melanjutkan_Ke',
     ];
 
     const dataRows = targetList.map((s) => [
-      // Bagian A
       s.personal.nis,
       s.personal.nisn,
       s.personal.namaLengkap,
@@ -611,19 +628,16 @@ export default function App() {
       s.personal.kabupatenKota,
       s.personal.tinggalDengan || 'Orang Tua',
       s.personal.nomorHp,
-      // Bagian B
       s.physical.beratBadanKg,
       s.physical.tinggiBadanCm,
       s.physical.golonganDarah,
       s.physical.riwayatPenyakit || 'Tidak Ada',
-      // Bagian C
       s.previousEducation.asalSekolah,
       s.previousEducation.nomorIjazahSmp,
       s.previousEducation.diterimaDiKelas,
       s.previousEducation.jurusanPeminatan,
       s.previousEducation.tahunAjaranMasuk || '2024/2025',
       s.previousEducation.diterimaTanggal,
-      // Bagian D
       s.ayah.nama,
       s.ayah.tempatLahir || '',
       s.ayah.tanggalLahir || '',
@@ -638,12 +652,10 @@ export default function App() {
       s.ibu.pekerjaan,
       s.ibu.penghasilanBulanan || '',
       s.ibu.nomorHp || '',
-      // Bagian E
       s.wali.adaWali ? (s.wali.nama || '') : '',
       s.wali.adaWali ? (s.wali.hubunganKeluarga || '') : '',
       s.wali.adaWali ? (s.wali.pekerjaan || '') : '',
       s.wali.adaWali ? (s.wali.penghasilanBulanan || '') : '',
-      // Bagian F
       s.departure.status,
       s.departure.nomorIjazahSma || '',
       s.departure.namaPerguruanTinggi || s.departure.melanjutkanKe || '',
@@ -653,7 +665,7 @@ export default function App() {
     wsData['!cols'] = headers.map((h) => ({ wch: Math.max(18, h.length + 4) }));
     XLSX.utils.book_append_sheet(wb, wsData, 'DATA_SISWA_BUKU_INDUK');
 
-    const guideHeaders = ['BAGIAN BUKU INDUK', 'FORMAT STANDAR', 'KETERANGAN RESMI DAPODIK / BUKU INDUK'];
+    const guideHeaders = ['BAGIAN BUKU INDUK', 'FORMAT STANDAR', 'KETERANGAN RESMI'];
     const guideRows = [
       ['BAGIAN A (Pribadi)', '18 Kolom Lengkap', 'NIS, NISN, Nama, TTL, Agama, Kewarganegaraan, Anak Ke, Saudara, Bahasa, Alamat, Tinggal Bersama, HP'],
       ['BAGIAN B (Jasmani)', '4 Kolom Lengkap', 'Berat Badan (kg), Tinggi Badan (cm), Golongan Darah, Riwayat Penyakit'],
@@ -666,12 +678,12 @@ export default function App() {
     wsGuide['!cols'] = [{ wch: 26 }, { wch: 26 }, { wch: 68 }];
     XLSX.utils.book_append_sheet(wb, wsGuide, 'PETUNJUK_DAN_LEGENDA');
 
-    const filename = `Buku_Induk_SMA_Lengkap_A_sd_F_${schoolProfile.namaSekolah.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = `Buku_Induk_SMA_${schoolProfile.namaSekolah.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, filename);
 
     showToast(
-      'Ekspor Excel (.xlsx) Lengkap Berhasil',
-      `${targetList.length} data siswa (49 kolom Bagian A s/d F) telah diekspor ke ${filename}.`,
+      'Ekspor Excel (.xlsx) Berhasil',
+      `${targetList.length} data siswa berhasil diekspor ke ${filename}.`,
       'success'
     );
   };
@@ -679,15 +691,6 @@ export default function App() {
   // Excel Batch Import Handlers
   const handleImportStudents = (importedStudents: StudentFullRecord[]) => {
     setStudents((prev) => [...importedStudents, ...prev]);
-    const newNotif: FilamentNotificationItem = {
-      id: 'imp-std-' + Date.now(),
-      title: 'Impor Excel Siswa Selesai',
-      body: `${importedStudents.length} data siswa baru (Bagian A–F lengkap) berhasil ditambahkan ke database.`,
-      type: 'success',
-      createdAt: 'Baru saja',
-      isRead: false,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
   };
 
   const handleImportGrades = (updates: GradeImportPayloadItem[]) => {
@@ -735,39 +738,8 @@ export default function App() {
     );
   };
 
-  const handleImportPhotosZip = (matchedCount: number) => {
-    const newNotif: FilamentNotificationItem = {
-      id: 'imp-zip-' + Date.now(),
-      title: 'Pencocokan Foto ZIP Berhasil',
-      body: `${matchedCount} pas foto siswa telah disinkronkan dengan NIS/NISN.`,
-      type: 'info',
-      createdAt: 'Baru saja',
-      isRead: false,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-  };
-
-  // Backup Restore & Reset Handlers
-  const handleRestoreData = (
-    restoredStudents: StudentFullRecord[],
-    restoredAttendance: DailyAttendanceRecord[]
-  ) => {
-    setStudents(restoredStudents);
-    setAttendanceRecords(restoredAttendance);
-  };
-
-  const handleResetToDefault = () => {
-    setStudents(MOCK_STUDENTS);
-    setAttendanceRecords(MOCK_DAILY_ATTENDANCE);
-    setSchoolProfile(DEFAULT_SCHOOL_PROFILE);
-    setAcademicYears(DEFAULT_ACADEMIC_YEARS);
-    setTeachers(DEFAULT_TEACHERS);
-    setDepartments(DEFAULT_DEPARTMENTS);
-    setGradeLevels(DEFAULT_GRADE_LEVELS);
-    setSchoolClasses(DEFAULT_CLASSES);
-    setCurrentTheme('linear-notion');
-    localStorage.clear();
-    showToast('Data Direset', 'Seluruh data telah dikembalikan ke standar awal.', 'info');
+  const handleImportPhotosZip = (_matchedCount: number) => {
+    // Handled via notification in ExcelImportCenterModal
   };
 
   const mapStepToNav = (step: MasterStepNumber) => {
@@ -778,14 +750,12 @@ export default function App() {
     if (step === 5) setActiveNav('step4_kelas');
   };
 
-  // If user is not logged in or has no JWT token, display the Login Screen
   const handleLogout = () => {
     setAuthToken(null);
     setCurrentUser(null);
     setIsHydratedFromServer(false);
     localStorage.removeItem(STORAGE_KEY_TOKEN);
     localStorage.removeItem(STORAGE_KEY_AUTH);
-    showToast('Telah Keluar', 'Sesi login JWT berhasil diakhiri.', 'info');
   };
 
   if (!currentUser || !authToken) {
@@ -797,25 +767,16 @@ export default function App() {
           localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
           setAuthToken(token);
           setCurrentUser(user);
-          showToast('Login Berhasil', `Selamat datang, ${user.namaLengkap}! Data disinkronkan dari SQLite.`, 'success');
+          showToast('Berhasil Masuk', `Selamat datang, ${user.namaLengkap}.`, 'success');
         }}
       />
     );
   }
 
-  const isObsidian = currentTheme === 'obsidian-dark';
-
   return (
-    <div
-      data-theme={currentTheme}
-      className={`theme-app-shell min-h-screen ${
-        isObsidian
-          ? 'bg-slate-950 text-slate-100'
-          : 'bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100'
-      } flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-200`}
-    >
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans antialiased transition-colors">
       <div className="flex flex-1 overflow-hidden">
-        {/* Workspace Sidebar (Collapsible + Ctrl+K Trigger + Change Password) */}
+        {/* Left Sidebar: Ant Design Pro Dark Navy (#001529), Fixed Width w-64 */}
         <FilamentSidebar
           activeNav={activeNav}
           onSelectNav={(key) => {
@@ -827,40 +788,26 @@ export default function App() {
           }}
           isOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={handleToggleSidebarCollapse}
-          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-          onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
           schoolProfile={schoolProfile}
-          currentUser={currentUser}
-          onLogout={handleLogout}
         />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {/* Top Navbar with Quick Search (Ctrl+K), SQLite Sync Status & Change Password */}
+        {/* Main Workspace Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#f0f2f5] dark:bg-slate-950 transition-colors">
+          {/* Topbar with Page Title, Theme & 5 Corporate Accent Switcher, User Profile + Keluar */}
           <FilamentNavbar
-            notifications={notifications}
-            onMarkNotificationAsRead={handleMarkNotificationAsRead}
-            onClearAllNotifications={handleClearAllNotifications}
+            pageTitle={PAGE_TITLES[activeNav] || 'Buku Induk Siswa'}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
-            isSidebarCollapsed={isSidebarCollapsed}
-            onToggleSidebarCollapse={handleToggleSidebarCollapse}
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-            onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
-            syncStatus={syncStatus}
-            schoolProfile={schoolProfile}
             currentUser={currentUser}
             onLogout={handleLogout}
-            onOpenImportModal={() => setIsImportModalOpen(true)}
-            currentTheme={currentTheme}
-            onSelectTheme={handleSelectTheme}
+            colorMode={colorMode}
+            onChangeColorMode={setColorMode}
+            accentColor={accentColor}
+            onChangeAccentColor={setAccentColor}
           />
 
-          {/* Page Routing */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-            {/* 1. Dashboard Induk & Matriks Demografi L/P */}
+          {/* Main Page Content */}
+          <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full">
             {activeNav === 'dashboard' && (
               <DashboardOverview
                 students={students}
@@ -872,7 +819,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 1: Input Tahun Ajaran */}
             {activeNav === 'step1_tahun_ajaran' && (
               <MasterSetupStepsView
                 currentStep={1}
@@ -894,7 +840,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 2: Input Data Guru */}
             {activeNav === 'step2_guru' && (
               <MasterSetupStepsView
                 currentStep={2}
@@ -916,7 +861,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 3: Input Jurusan */}
             {activeNav === 'step2_jurusan' && (
               <MasterSetupStepsView
                 currentStep={3}
@@ -938,7 +882,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 4: Input Tingkat Kelas */}
             {activeNav === 'step3_tingkat' && (
               <MasterSetupStepsView
                 currentStep={4}
@@ -960,7 +903,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 5: Input Rombel Kelas (Unique ID per Academic Year) */}
             {activeNav === 'step4_kelas' && (
               <MasterSetupStepsView
                 currentStep={5}
@@ -982,7 +924,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 6: Input & Master Siswa Buku Induk (Lembar I & Lembar II) */}
             {activeNav === 'step5_siswa' && (
               <StudentBookMasterView
                 students={students}
@@ -1003,7 +944,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 7: Input Data Nilai Sem 1-6 */}
             {activeNav === 'step6_nilai' && (
               <AcademicGradeView
                 students={students}
@@ -1015,7 +955,6 @@ export default function App() {
               />
             )}
 
-            {/* Step 8: Input Kehadiran Siswa */}
             {activeNav === 'step7_kehadiran' && (
               <AttendanceView
                 records={attendanceRecords}
@@ -1026,7 +965,6 @@ export default function App() {
               />
             )}
 
-            {/* Cetak 1 Berkas Gabungan PDF (Cover Depan Klasik + Watermark + TTD Toggle) */}
             {activeNav === 'cetak_dokumen_gabungan' && (
               <OfficialPrintPreview
                 students={students}
@@ -1037,46 +975,58 @@ export default function App() {
               />
             )}
 
-            {/* Queue Job Spatie Browsershot Simulator */}
-            {activeNav === 'queue_cetak_massal' && (
-              <PdfExportQueueView
-                students={students}
-                schoolProfile={schoolProfile}
-                onTriggerJobNotification={handleTriggerJobNotification}
-                onNavigateToPreview={() => {
-                  setPreviewStudentId(students[0]?.id);
-                  setBatchPrintStudentIds(students.map((s) => s.id));
-                  setActiveNav('cetak_dokumen_gabungan');
-                }}
-                onOpenImportModal={() => setIsImportModalOpen(true)}
-              />
-            )}
-
-            {/* Profil & Logo Sekolah + 5 UI Themes */}
-            {activeNav === 'pengaturan_profil_sekolah' && (
-              <SchoolProfileSettingsView
-                schoolProfile={schoolProfile}
-                onUpdateSchoolProfile={setSchoolProfile}
-                currentTheme={currentTheme}
-                onSelectTheme={handleSelectTheme}
-                onShowNotification={showToast}
-              />
-            )}
-
-            {/* Database & Spatie Backup */}
-            {activeNav === 'pengaturan_backup' && (
+            {activeNav === 'backup_restore_db' && (
               <SettingsAndBackupView
+                authToken={authToken}
                 students={students}
                 attendanceRecords={attendanceRecords}
-                onRestoreData={handleRestoreData}
+                schoolProfile={schoolProfile}
+                academicYears={academicYears}
+                teachers={teachers}
+                departments={departments}
+                gradeLevels={gradeLevels}
+                schoolClasses={schoolClasses}
+                masterSubjects={masterSubjects}
+                onRestoreData={(restoredStudents, restoredAttendance) => {
+                  setStudents(restoredStudents);
+                  setAttendanceRecords(restoredAttendance);
+                }}
+                onRestoreFullPayload={handleRestoreFullPayload}
+                onClearSelectedCollections={handleClearSelectedCollections}
+                onClearAllToZero={handleClearAllToZero}
                 onResetToDefault={handleResetToDefault}
                 onShowNotification={showToast}
               />
             )}
 
-            {/* Blueprint Kode Laravel 11 */}
-            {activeNav === 'blueprint_arsitektur' && (
-              <CodeBlueprintViewer />
+            {activeNav === 'pengaturan_profil_sekolah' && (
+              <SchoolProfileSettingsView
+                schoolProfile={schoolProfile}
+                onUpdateSchoolProfile={setSchoolProfile}
+                authToken={authToken}
+                username={currentUser.username}
+                colorMode={colorMode}
+                onChangeColorMode={setColorMode}
+                accentColor={accentColor}
+                onChangeAccentColor={setAccentColor}
+                students={students}
+                attendanceRecords={attendanceRecords}
+                academicYears={academicYears}
+                teachers={teachers}
+                departments={departments}
+                gradeLevels={gradeLevels}
+                schoolClasses={schoolClasses}
+                masterSubjects={masterSubjects}
+                onRestoreData={(restoredStudents, restoredAttendance) => {
+                  setStudents(restoredStudents);
+                  setAttendanceRecords(restoredAttendance);
+                }}
+                onRestoreFullPayload={handleRestoreFullPayload}
+                onClearSelectedCollections={handleClearSelectedCollections}
+                onClearAllToZero={handleClearAllToZero}
+                onResetToDefault={handleResetToDefault}
+                onShowNotification={showToast}
+              />
             )}
           </main>
         </div>
@@ -1104,51 +1054,27 @@ export default function App() {
         onShowNotification={showToast}
       />
 
-      {/* Command Palette (Ctrl+K / Cmd+K) */}
-      <CommandPaletteModal
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        students={students}
-        onSelectStudentForPreview={(student) => handleSinglePrint(student)}
-        onNavigateNav={(nav) => {
-          if (nav === 'impor_massal_center') {
-            setIsImportModalOpen(true);
-          } else {
-            setActiveNav(nav);
-          }
-        }}
-        onOpenImportModal={() => setIsImportModalOpen(true)}
-        onExportStudentsExcel={handleExportExcel}
-        onToggleSidebarCollapse={handleToggleSidebarCollapse}
-        isSidebarCollapsed={isSidebarCollapsed}
-        currentTheme={currentTheme}
-        onSelectTheme={handleSelectTheme}
-      />
-
-      {/* Change Password Modal (POST /api/change-password) */}
-      <ChangePasswordModal
-        isOpen={isChangePasswordModalOpen}
-        onClose={() => setIsChangePasswordModalOpen(false)}
-        token={authToken}
-        username={currentUser.username}
-        onSuccess={(msg) => showToast('Password Diperbarui', msg, 'success')}
-      />
-
       {/* Floating Toast Notification */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 max-w-md animate-in fade-in slide-in-from-bottom-4">
-          <div className="h-2 w-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0 animate-ping"></div>
+        <div className="fixed bottom-5 right-5 z-50 flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-xl max-w-md">
+          <div
+            className={`h-2.5 w-2.5 rounded-full mt-1 flex-shrink-0 ${
+              toast.type === 'success'
+                ? 'bg-emerald-600'
+                : toast.type === 'danger'
+                ? 'bg-rose-600'
+                : toast.type === 'warning'
+                ? 'bg-amber-500'
+                : 'bg-blue-600'
+            }`}
+          />
           <div className="flex-1 text-xs">
-            <h5 className="font-bold text-slate-900 dark:text-white">
-              {toast.title}
-            </h5>
-            <p className="mt-0.5 text-slate-600 dark:text-slate-300 leading-relaxed">
-              {toast.body}
-            </p>
+            <h5 className="font-bold text-slate-900 dark:text-white">{toast.title}</h5>
+            <p className="text-slate-600 dark:text-slate-300 mt-0.5">{toast.body}</p>
           </div>
           <button
             onClick={() => setToast(null)}
-            className="text-slate-400 hover:text-slate-600 text-xs"
+            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold cursor-pointer"
           >
             ✕
           </button>
