@@ -1,6 +1,0 @@
-{
-  "summary":  "Rencana implementasi gabungan: (1) Transformasi UI Linear & Notion Workspace, Collapsible Sidebar, Command Palette Ctrl+K, dan Multi-UI Theme Switcher; serta (2) Pembuatan Dokumentasi README.md Lengkap untuk GitHub beserta konfigurasi Docker siap pakai untuk instalasi di Linux Native (NPM/PM2/Nginx), Docker & Docker Compose, serta Windows.",
-  "updatedAt":  "2026-10-21T02:10:41.257055437Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}

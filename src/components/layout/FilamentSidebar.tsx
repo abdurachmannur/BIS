@@ -19,7 +19,8 @@ import {
   UserCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  Search
+  Search,
+  KeyRound
 } from 'lucide-react';
 import { SchoolProfile, AuthUser } from '../../types/buku-induk';
 
@@ -48,6 +49,7 @@ interface FilamentSidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenChangePassword?: () => void;
   schoolProfile: SchoolProfile;
   currentUser: AuthUser | null;
   onLogout: () => void;
@@ -74,6 +76,7 @@ export const FilamentSidebar: React.FC<FilamentSidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse,
   onOpenCommandPalette,
+  onOpenChangePassword,
   schoolProfile,
   currentUser,
   onLogout,
@@ -347,15 +350,28 @@ export const FilamentSidebar: React.FC<FilamentSidebarProps> = ({
                   {currentUser.username.slice(0, 2)}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={onLogout}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
-                title="Keluar dari akun"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                {!isCollapsed && <span>Keluar</span>}
-              </button>
+              <div className="flex items-center gap-1">
+                {onOpenChangePassword && (
+                  <button
+                    type="button"
+                    onClick={onOpenChangePassword}
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    title="Ganti Password Akun"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" />
+                    {!isCollapsed && <span>Sandi</span>}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                  title="Keluar dari akun"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {!isCollapsed && <span>Keluar</span>}
+                </button>
+              </div>
             </div>
           )}
         </div>

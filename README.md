@@ -68,15 +68,13 @@ Anda dapat mengganti gaya antarmuka kapan saja melalui tombol **Pilih Gaya Desai
 
 ---
 
-## Akun Login Default (Demo & Operasional Awal)
+## Akun Login Default (Auto-Seed SQLite)
 
-Saat pertama kali membuka aplikasi, Anda dapat masuk menggunakan salah satu akun berikut (atau klik tombol **Login Instan 1-Klik** pada halaman masuk):
+Saat server pertama kali menyala (`node server.js`) dan tabel `users` pada `./data/bis.sqlite` masih kosong, sistem otomatis membuat (*auto-seed*) akun Administrator berikut:
 
-| Peran Pengguna | Username | Password | Hak Akses Utama |
+| Peran Pengguna | Username | Password Awal | Keterangan |
 | :--- | :--- | :--- | :--- |
-| **Super Admin (Operator TU)** | `admin_tu` | `password123` | Akses penuh seluruh Master Data, Siswa, Nilai, Impor Excel & Pengaturan |
-| **Wali Kelas** | `wali_x_mipa1` | `password123` | Pengelolaan data siswa kelas binaan, nilai rapor, dan presensi |
-| **Guru Mata Pelajaran** | `guru_matematika` | `password123` | Input dan pembaruan nilai akademik mata pelajaran |
+| **Administrator Utama (Operator TU)** | `admin` | `admin123` | Di-hash dengan `bcryptjs`, dapat diubah kapan saja melalui menu **Ganti Password** |
 
 ---
 
@@ -161,31 +159,30 @@ npm run dev
 ```
 Buka browser dan akses: **`http://localhost:3000`** (atau `http://<IP-SERVER-LINUX>:3000`).
 
-#### Opsi 2: Build untuk Produksi (Production)
-Mengompilasi aset yang telah dioptimasi ke dalam direktori `dist/`:
+#### Opsi 2: Build & Jalankan Server Produksi (`server.js` + SQLite)
+Mengompilasi aset frontend ke dalam direktori `dist/` dan menjalankan server Express + SQLite (`./data/bis.sqlite`):
 ```bash
 npm run build
-
-# Menjalankan server pratinjau produksi pada port 3000
-npx vite preview --port 3000 --host 0.0.0.0
+npm start
+# (atau: node server.js)
 ```
 
 ---
 
 ### Langkah 4: Menjalankan Secara Permanen di Background (PM2 / Systemd)
 
-Agar aplikasi tetap berjalan otomatis meskipun terminal ditutup atau server di-*restart*:
+Agar aplikasi Full-Stack (`server.js`) dan database SQLite tetap berjalan otomatis meskipun terminal ditutup atau server di-*restart*:
 
 #### Metode A: Menggunakan PM2 (Sangat Direkomendasikan)
 ```bash
-# 1. Instal PM2 dan paket static server 'serve' secara global
-sudo npm install -g pm2 serve
+# 1. Instal PM2 secara global
+sudo npm install -g pm2
 
 # 2. Pastikan aplikasi sudah di-build
 npm run build
 
-# 3. Jalankan folder hasil build (dist) pada port 3000 dengan dukungan SPA (-s)
-pm2 start "serve -s dist -l 3000" --name "buku-induk-sma"
+# 3. Jalankan server Express + SQLite pada port 3000
+pm2 start server.js --name "buku-induk-sma"
 
 # 4. Simpan konfigurasi PM2 dan aktifkan auto-start saat server booting
 pm2 save
@@ -206,16 +203,17 @@ sudo nano /etc/systemd/system/buku-induk.service
 Isi dengan konfigurasi berikut (sesuaikan `/var/www/buku-induk-sma` dengan lokasi folder Anda):
 ```ini
 [Unit]
-Description=Buku Induk Siswa Digital SMA Service
+Description=Buku Induk Siswa Digital SMA Full-Stack Service
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
 WorkingDirectory=/var/www/buku-induk-sma
-ExecStart=/usr/bin/npx vite preview --port 3000 --host 127.0.0.1
+ExecStart=/usr/bin/node server.js
 Restart=on-failure
 Environment=NODE_ENV=production
+Environment=PORT=3000
 
 [Install]
 WantedBy=multi-user.target
@@ -256,7 +254,7 @@ sudo systemctl reload nginx
 
 ## Panduan Instalasi menggunakan Docker & Docker Compose
 
-Repositori ini telah dilengkapi dengan **`Dockerfile`** (*Multi-Stage Build* dengan Node 22 Alpine + Nginx Stable Alpine), **`docker-compose.yml`**, dan **`nginx.conf`**. Anda tidak perlu menginstal Node.js secara manual di host server jika menggunakan Docker.
+Repositori ini telah dilengkapi dengan **`Dockerfile`** berbasis `node:24-bullseye-slim` (mendukung kompilasi native `better-sqlite3`), **`docker-compose.yml`** dengan *bind-mount* volume **`./bis_data:/app/data`**, dan **`.dockerignore`**. Seluruh data SQLite tersimpan secara persisten di luar container pada folder `./bis_data/bis.sqlite` di host server.
 
 ### Cara 1: Menggunakan Docker Compose (Paling Mudah — 1 Perintah)
 
@@ -270,12 +268,13 @@ docker compose up -d --build
 ```
 Aplikasi langsung aktif dan dapat diakses melalui browser di:
 - **`http://localhost:3000`** (atau `http://<IP-SERVER-ANDA>:3000`)
+- File database SQLite otomatis tersimpan di host pada: **`./bis_data/bis.sqlite`**
 
 #### Perintah Manajemen Docker Compose:
 - Melihat status container: `docker compose ps`
 - Melihat log akses/error: `docker compose logs -f`
 - Menghentikan aplikasi: `docker compose down`
-- Memperbarui aplikasi setelah ada perubahan di GitHub:
+- Memperbarui aplikasi setelah ada perubahan di GitHub (data di `./bis_data` tetap aman):
   ```bash
   git pull origin main
   docker compose up -d --build
@@ -287,15 +286,14 @@ Aplikasi langsung aktif dan dapat diakses melalui browser di:
 # 1. Build Docker image
 docker build -t buku-induk-sma:latest .
 
-# 2. Jalankan container pada port 3000
+# 2. Jalankan container pada port 3000 dengan volume persistent
 docker run -d \
   --name buku-induk-siswa-sma \
   --restart unless-stopped \
-  -p 3000:80 \
+  -p 3000:3000 \
+  -v $(pwd)/bis_data:/app/data \
   buku-induk-sma:latest
 ```
-
-*(Tips: Jika ingin menjalankan pada port selain `3000`, misalnya port `8080`, cukup ubah `-p 8080:80` pada perintah di atas atau ubah `"8080:80"` di dalam file `docker-compose.yml`).*
 
 ---
 

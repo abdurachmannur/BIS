@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { FilamentNavbar } from './components/layout/FilamentNavbar';
 import { FilamentSidebar, ActiveNavKey } from './components/layout/FilamentSidebar';
 import { FilamentLoginView } from './components/auth/FilamentLoginView';
+import { ChangePasswordModal } from './components/auth/ChangePasswordModal';
 import { DashboardOverview } from './components/dashboard/DashboardOverview';
 import { MasterSetupStepsView, MasterStepNumber } from './components/phase1_step1_4/MasterSetupStepsView';
 import { StudentBookMasterView } from './components/phase2/StudentBookMasterView';
@@ -46,7 +47,8 @@ import { GradeImportPayloadItem } from './components/import/ExcelImportCenterMod
 const STORAGE_KEY_STUDENTS = 'buku_induk_students_v2';
 const STORAGE_KEY_ATTENDANCE = 'buku_induk_attendance_v2';
 const STORAGE_KEY_SCHOOL = 'buku_induk_school_profile_v2';
-const STORAGE_KEY_AUTH = 'buku_induk_auth_user_v2';
+const STORAGE_KEY_AUTH = 'buku_induk_auth_user_v3';
+const STORAGE_KEY_TOKEN = 'buku_induk_jwt_token_v1';
 const STORAGE_KEY_ACADEMIC_YEARS = 'buku_induk_academic_years_v2';
 const STORAGE_KEY_TEACHERS = 'buku_induk_teachers_v2';
 const STORAGE_KEY_DEPARTMENTS = 'buku_induk_departments_v2';
@@ -57,15 +59,25 @@ const STORAGE_KEY_THEME = 'buku_induk_ui_theme_v3';
 const STORAGE_KEY_SIDEBAR_COLLAPSED = 'buku_induk_sidebar_collapsed_v1';
 
 export default function App() {
-  // Current logged in user (null = shows login screen)
+  // JWT Token stored in localStorage
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_TOKEN);
+    } catch {
+      return null;
+    }
+  });
+
+  // Current logged in user (null if no JWT token in localStorage)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-      if (saved) return JSON.parse(saved);
+      const token = localStorage.getItem(STORAGE_KEY_TOKEN);
+      const savedUser = localStorage.getItem(STORAGE_KEY_AUTH);
+      if (token && savedUser) return JSON.parse(savedUser);
     } catch (e) {
       console.error(e);
     }
-    return DEFAULT_AUTH_USERS[0];
+    return null;
   });
 
   const [activeNav, setActiveNav] = useState<ActiveNavKey>('dashboard');
@@ -79,6 +91,9 @@ export default function App() {
   });
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('saved');
+  const [isHydratedFromServer, setIsHydratedFromServer] = useState<boolean>(false);
 
   const handleToggleSidebarCollapse = () => {
     setIsSidebarCollapsed((prev) => {
@@ -258,7 +273,7 @@ export default function App() {
     return () => clearTimeout(timer);
   };
 
-  // Sync to LocalStorage
+  // Sync to LocalStorage cache
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(students));
   }, [students]);
@@ -296,12 +311,158 @@ export default function App() {
   }, [masterSubjects]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && authToken) {
       localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(currentUser));
+      localStorage.setItem(STORAGE_KEY_TOKEN, authToken);
     } else {
       localStorage.removeItem(STORAGE_KEY_AUTH);
+      localStorage.removeItem(STORAGE_KEY_TOKEN);
     }
-  }, [currentUser]);
+  }, [currentUser, authToken]);
+
+  // 1. Ambil data awal dari GET /api/data saat user sudah login (memiliki JWT token)
+  useEffect(() => {
+    if (!authToken || !currentUser) {
+      setIsHydratedFromServer(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadFromSQLite() {
+      try {
+        setSyncStatus('saving');
+        const res = await fetch('/api/data', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (res.status === 401) {
+          if (!isCancelled) {
+            setAuthToken(null);
+            setCurrentUser(null);
+            showToast('Sesi Berakhir', 'Silakan login kembali untuk mengakses database SQLite.', 'warning');
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error('Gagal memuat data dari SQLite');
+        }
+
+        const result = await res.json();
+        if (isCancelled) return;
+
+        const serverData = result.data || {};
+
+        if (result.isEmpty) {
+          // Database SQLite masih kosong, simpan data awal ke SQLite
+          await fetch('/api/data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({
+              data: {
+                students,
+                attendanceRecords,
+                schoolProfile,
+                academicYears,
+                teachers,
+                departments,
+                gradeLevels,
+                schoolClasses,
+                masterSubjects,
+              },
+            }),
+          });
+        } else {
+          if (Array.isArray(serverData.students)) setStudents(serverData.students);
+          if (Array.isArray(serverData.attendanceRecords)) setAttendanceRecords(serverData.attendanceRecords);
+          if (serverData.schoolProfile) setSchoolProfile(serverData.schoolProfile);
+          if (Array.isArray(serverData.academicYears)) setAcademicYears(serverData.academicYears);
+          if (Array.isArray(serverData.teachers)) setTeachers(serverData.teachers);
+          if (Array.isArray(serverData.departments)) setDepartments(serverData.departments);
+          if (Array.isArray(serverData.gradeLevels)) setGradeLevels(serverData.gradeLevels);
+          if (Array.isArray(serverData.schoolClasses)) setSchoolClasses(serverData.schoolClasses);
+          if (Array.isArray(serverData.masterSubjects)) setMasterSubjects(serverData.masterSubjects);
+        }
+
+        setSyncStatus('saved');
+        setIsHydratedFromServer(true);
+      } catch (err) {
+        console.error('Gagal memuat GET /api/data:', err);
+        if (!isCancelled) {
+          setSyncStatus('error');
+          setIsHydratedFromServer(true);
+        }
+      }
+    }
+
+    loadFromSQLite();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authToken]);
+
+  // 2. Setiap kali ada penambahan/perubahan/penghapusan data, kirim ke POST /api/data (SQLite)
+  useEffect(() => {
+    if (!authToken || !currentUser || !isHydratedFromServer) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setSyncStatus('saving');
+        const res = await fetch('/api/data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            data: {
+              students,
+              attendanceRecords,
+              schoolProfile,
+              academicYears,
+              teachers,
+              departments,
+              gradeLevels,
+              schoolClasses,
+              masterSubjects,
+            },
+          }),
+        });
+
+        if (res.ok) {
+          setSyncStatus('saved');
+        } else {
+          setSyncStatus('error');
+        }
+      } catch (err) {
+        console.error('Gagal menyimpan POST /api/data:', err);
+        setSyncStatus('error');
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [
+    authToken,
+    currentUser,
+    isHydratedFromServer,
+    students,
+    attendanceRecords,
+    schoolProfile,
+    academicYears,
+    teachers,
+    departments,
+    gradeLevels,
+    schoolClasses,
+    masterSubjects,
+  ]);
 
   // Notification handlers
   const handleMarkNotificationAsRead = (id: string) => {
@@ -617,14 +778,26 @@ export default function App() {
     if (step === 5) setActiveNav('step4_kelas');
   };
 
-  // If user is not logged in, display the Login Screen
-  if (!currentUser) {
+  // If user is not logged in or has no JWT token, display the Login Screen
+  const handleLogout = () => {
+    setAuthToken(null);
+    setCurrentUser(null);
+    setIsHydratedFromServer(false);
+    localStorage.removeItem(STORAGE_KEY_TOKEN);
+    localStorage.removeItem(STORAGE_KEY_AUTH);
+    showToast('Telah Keluar', 'Sesi login JWT berhasil diakhiri.', 'info');
+  };
+
+  if (!currentUser || !authToken) {
     return (
       <FilamentLoginView
         schoolProfile={schoolProfile}
-        onLoginSuccess={(user) => {
+        onLoginSuccess={(user, token) => {
+          localStorage.setItem(STORAGE_KEY_TOKEN, token);
+          localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(user));
+          setAuthToken(token);
           setCurrentUser(user);
-          showToast('Login Berhasil', `Selamat datang, ${user.namaLengkap}!`, 'success');
+          showToast('Login Berhasil', `Selamat datang, ${user.namaLengkap}! Data disinkronkan dari SQLite.`, 'success');
         }}
       />
     );
@@ -642,7 +815,7 @@ export default function App() {
       } flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-200`}
     >
       <div className="flex flex-1 overflow-hidden">
-        {/* Workspace Sidebar (Collapsible + Ctrl+K Trigger) */}
+        {/* Workspace Sidebar (Collapsible + Ctrl+K Trigger + Change Password) */}
         <FilamentSidebar
           activeNav={activeNav}
           onSelectNav={(key) => {
@@ -657,17 +830,15 @@ export default function App() {
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={handleToggleSidebarCollapse}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
           schoolProfile={schoolProfile}
           currentUser={currentUser}
-          onLogout={() => {
-            setCurrentUser(null);
-            showToast('Telah Keluar', 'Sesi login berhasil diakhiri.', 'info');
-          }}
+          onLogout={handleLogout}
         />
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {/* Top Navbar with Quick Search (Ctrl+K) & UI Style Switcher */}
+          {/* Top Navbar with Quick Search (Ctrl+K), SQLite Sync Status & Change Password */}
           <FilamentNavbar
             notifications={notifications}
             onMarkNotificationAsRead={handleMarkNotificationAsRead}
@@ -677,12 +848,11 @@ export default function App() {
             isSidebarCollapsed={isSidebarCollapsed}
             onToggleSidebarCollapse={handleToggleSidebarCollapse}
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
+            syncStatus={syncStatus}
             schoolProfile={schoolProfile}
             currentUser={currentUser}
-            onLogout={() => {
-              setCurrentUser(null);
-              showToast('Telah Keluar', 'Sesi login berhasil diakhiri.', 'info');
-            }}
+            onLogout={handleLogout}
             onOpenImportModal={() => setIsImportModalOpen(true)}
             currentTheme={currentTheme}
             onSelectTheme={handleSelectTheme}
@@ -953,6 +1123,15 @@ export default function App() {
         isSidebarCollapsed={isSidebarCollapsed}
         currentTheme={currentTheme}
         onSelectTheme={handleSelectTheme}
+      />
+
+      {/* Change Password Modal (POST /api/change-password) */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        token={authToken}
+        username={currentUser.username}
+        onSuccess={(msg) => showToast('Password Diperbarui', msg, 'success')}
       />
 
       {/* Floating Toast Notification */}

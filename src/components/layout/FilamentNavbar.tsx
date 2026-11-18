@@ -10,7 +10,9 @@ import {
   Palette,
   ChevronDown,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  KeyRound,
+  Database
 } from 'lucide-react';
 import { FilamentNotificationItem, SchoolProfile, AuthUser, UIThemePreset } from '../../types/buku-induk';
 import { UI_THEMES } from '../../theme/themes';
@@ -24,6 +26,8 @@ interface FilamentNavbarProps {
   isSidebarCollapsed?: boolean;
   onToggleSidebarCollapse?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenChangePassword?: () => void;
+  syncStatus?: 'idle' | 'saving' | 'saved' | 'error';
   schoolProfile: SchoolProfile;
   currentUser: AuthUser | null;
   onLogout: () => void;
@@ -41,6 +45,8 @@ export const FilamentNavbar: React.FC<FilamentNavbarProps> = ({
   isSidebarCollapsed = false,
   onToggleSidebarCollapse,
   onOpenCommandPalette,
+  onOpenChangePassword,
+  syncStatus = 'saved',
   schoolProfile,
   currentUser,
   onLogout,
@@ -89,6 +95,20 @@ export const FilamentNavbar: React.FC<FilamentNavbarProps> = ({
           <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">·</span>
           <span className="text-xs font-mono text-slate-500 dark:text-slate-400 hidden sm:inline whitespace-nowrap">
             NPSN {schoolProfile.npsn}
+          </span>
+          <span className="text-slate-300 dark:text-slate-600 hidden xl:inline">·</span>
+          <span
+            className="hidden xl:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap"
+            title="Status penyimpanan database SQLite (./data/bis.sqlite)"
+          >
+            <Database className="h-3 w-3 text-indigo-500" />
+            <span>
+              {syncStatus === 'saving'
+                ? 'Menyimpan ke SQLite...'
+                : syncStatus === 'error'
+                ? 'Gagal Sinkron SQLite'
+                : 'SQLite Tersimpan'}
+            </span>
           </span>
         </div>
       </div>
@@ -304,24 +324,36 @@ export const FilamentNavbar: React.FC<FilamentNavbarProps> = ({
           )}
         </div>
 
-        {/* User Profile & Logout */}
+        {/* User Profile, Change Password & Logout */}
         {currentUser && (
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
-            <div className="hidden lg:block text-right text-xs">
+          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700">
+            <div className="hidden lg:block text-right text-xs mr-1">
               <div className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
                 {currentUser.namaLengkap.split(' (')[0]}
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
-                {currentUser.role.replace('_', ' ')}
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                @{currentUser.username}
               </div>
             </div>
+            {onOpenChangePassword && (
+              <button
+                type="button"
+                onClick={onOpenChangePassword}
+                className="flex h-8 items-center gap-1.5 px-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors cursor-pointer whitespace-nowrap"
+                title="Ganti Password Admin"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Ganti Password</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onLogout}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-              title="Keluar"
+              className="flex h-8 items-center gap-1.5 px-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-rose-950/40 transition-colors cursor-pointer whitespace-nowrap"
+              title="Logout / Keluar"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Logout</span>
             </button>
           </div>
         )}

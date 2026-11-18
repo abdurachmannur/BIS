@@ -6,6 +6,10 @@ services:
     container_name: buku-induk-siswa-sma
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "3000:3000"
+    volumes:
+      - ./bis_data:/app/data
     environment:
+      - NODE_ENV=production
+      - PORT=3000
       - TZ=Asia/Jakarta

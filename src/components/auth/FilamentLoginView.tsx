@@ -3,17 +3,16 @@ import {
   Lock, 
   User, 
   LogIn, 
-  ShieldCheck, 
   School, 
   AlertCircle,
-  Sparkles
+  Database,
+  KeyRound
 } from 'lucide-react';
 import { SchoolProfile, AuthUser } from '../../types/buku-induk';
-import { DEFAULT_AUTH_USERS } from '../../data/mock-data';
 
 interface FilamentLoginViewProps {
   schoolProfile: SchoolProfile;
-  onLoginSuccess: (user: AuthUser) => void;
+  onLoginSuccess: (user: AuthUser, token: string) => void;
 }
 
 export const FilamentLoginView: React.FC<FilamentLoginViewProps> = ({
@@ -21,73 +20,100 @@ export const FilamentLoginView: React.FC<FilamentLoginViewProps> = ({
   onLoginSuccess,
 }) => {
   const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('password');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (targetUsername: string, targetPassword: string) => {
     setError(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      const cleanUsername = username.trim().toLowerCase();
-      const matched = DEFAULT_AUTH_USERS.find(
-        (u) => u.username.toLowerCase() === cleanUsername
-      );
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: targetUsername.trim(),
+          password: targetPassword,
+        }),
+      });
 
-      if (matched) {
-        onLoginSuccess(matched);
-      } else {
-        setError('Username atau password tidak ditemukan. Silakan hubungi Administrator.');
+      const data = await response.json();
+
+      if (!response.ok || !data.token) {
+        setError(data.error || 'Username atau password tidak sesuai.');
+        setIsLoading(false);
+        return;
       }
-    }, 600);
+
+      setIsLoading(false);
+      onLoginSuccess(data.user, data.token);
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Gagal terhubung ke server backend (/api/login). Pastikan server Express berjalan.');
+      setIsLoading(false);
+    }
   };
 
-  const handleQuickLogin = (userItem: AuthUser) => {
-    setUsername(userItem.username);
-    setPassword('password');
-    onLoginSuccess(userItem);
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    performLogin(username, password);
+  };
+
+  const handleFillDefaultAdmin = () => {
+    setUsername('admin');
+    setPassword('admin123');
+    performLogin('admin', 'admin123');
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-center items-center bg-slate-950 p-4 font-sans text-slate-100 relative overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      {/* Subtle background glow */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Filament Brand Header */}
-        <div className="text-center mb-8 space-y-2">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 shadow-xl shadow-amber-500/20 text-slate-950 mb-2">
-            <School className="h-8 w-8" />
+        {/* School Brand Header */}
+        <div className="text-center mb-7 space-y-2">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg text-white mb-1 overflow-hidden">
+            {schoolProfile.logoUrl ? (
+              <img
+                src={schoolProfile.logoUrl}
+                alt={schoolProfile.namaSekolah}
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-contain p-1.5 bg-white"
+              />
+            ) : (
+              <School className="h-7 w-7" />
+            )}
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white uppercase">
+          <h1 className="text-xl font-bold tracking-tight text-white">
             {schoolProfile.namaSekolah}
           </h1>
-          <p className="text-xs text-slate-400 font-medium">
-            Sistem Informasi Buku Induk Siswa Digital · Panel Masuk Filament v3
+          <p className="text-xs text-slate-400">
+            Sistem Informasi Buku Induk Siswa Digital · NPSN {schoolProfile.npsn}
           </p>
-          <div className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            NPSN: {schoolProfile.npsn} · Terakreditasi {schoolProfile.akreditasi}
-          </div>
         </div>
 
         {/* Login Box */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-8 shadow-2xl space-y-6">
-          <div className="border-b border-slate-800 pb-3">
-            <h2 className="text-base font-bold text-white">
-              Masuk ke Akun Anda
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Kredensial ditentukan oleh Administrator sekolah (Tanpa Email)
-            </p>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/95 backdrop-blur-xl p-7 shadow-2xl space-y-5">
+          <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-white">
+                Autentikasi Server Buku Induk
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Terhubung ke database persisten SQLite (<code className="font-mono text-indigo-400">bis.sqlite</code>)
+              </p>
+            </div>
+            <Database className="h-4 w-4 text-indigo-400 shrink-0" />
           </div>
 
           {error && (
             <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -95,7 +121,7 @@ export const FilamentLoginView: React.FC<FilamentLoginViewProps> = ({
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Username Akun
+                Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -104,17 +130,17 @@ export const FilamentLoginView: React.FC<FilamentLoginViewProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="Masukkan username (contoh: admin)"
+                  placeholder="admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all font-mono"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Kata Sandi
+                Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -126,7 +152,7 @@ export const FilamentLoginView: React.FC<FilamentLoginViewProps> = ({
                   placeholder="Masukkan password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono"
                 />
               </div>
             </div>
@@ -134,74 +160,41 @@ export const FilamentLoginView: React.FC<FilamentLoginViewProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-md shadow-amber-500/20 active:scale-98 cursor-pointer disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
-                <span>Memverifikasi Kredensial...</span>
+                <span>Memverifikasi JWT & SQLite...</span>
               ) : (
                 <>
                   <LogIn className="h-4 w-4" />
-                  <span>Masuk ke Dashboard</span>
+                  <span>Masuk ke Aplikasi</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Quick Demo Role Picker (Convenience for testing) */}
-          <div className="border-t border-slate-800 pt-5 space-y-2.5">
+          {/* Auto-Seed Default Credentials Info */}
+          <div className="border-t border-slate-800 pt-4 space-y-2.5">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span className="flex items-center gap-1 font-semibold">
-                <Sparkles className="h-3 w-3 text-amber-400" />
-                <span>Pilih Cepat Akun Demo (Produksi):</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <KeyRound className="h-3.5 w-3.5 text-indigo-400" />
+                <span>Akun Auto-Seed Default SQLite:</span>
               </span>
+              <button
+                type="button"
+                onClick={handleFillDefaultAdmin}
+                className="text-indigo-400 hover:text-indigo-300 font-semibold underline cursor-pointer"
+              >
+                Masuk Instan (admin)
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin(DEFAULT_AUTH_USERS[0])}
-                className="p-2 rounded-lg border border-slate-800 hover:border-amber-500/50 bg-slate-950/60 hover:bg-slate-800/80 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-amber-400 group-hover:text-amber-300">
-                  Admin TU
-                </div>
-                <div className="text-[9px] text-slate-400 font-mono mt-0.5">
-                  user: admin
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin(DEFAULT_AUTH_USERS[1])}
-                className="p-2 rounded-lg border border-slate-800 hover:border-blue-500/50 bg-slate-950/60 hover:bg-slate-800/80 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-blue-400 group-hover:text-blue-300">
-                  Wali Kelas
-                </div>
-                <div className="text-[9px] text-slate-400 font-mono mt-0.5">
-                  user: walikelas
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin(DEFAULT_AUTH_USERS[2])}
-                className="p-2 rounded-lg border border-slate-800 hover:border-emerald-500/50 bg-slate-950/60 hover:bg-slate-800/80 text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-emerald-400 group-hover:text-emerald-300">
-                  Guru Mapel
-                </div>
-                <div className="text-[9px] text-slate-400 font-mono mt-0.5">
-                  user: guru
-                </div>
-              </button>
+            <div className="p-2.5 rounded-lg border border-slate-800 bg-slate-950/70 flex items-center justify-between text-xs font-mono text-slate-300">
+              <span>Username: <strong className="text-white">admin</strong></span>
+              <span>·</span>
+              <span>Password Awal: <strong className="text-white">admin123</strong></span>
             </div>
           </div>
-        </div>
-
-        {/* Footer info */}
-        <div className="text-center mt-6 text-[11px] text-slate-400">
-          TALL Stack · Laravel 11 · Filament v3 · Standar Buku Induk Kemendikbudristek RI
         </div>
       </div>
     </div>
